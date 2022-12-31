@@ -5,10 +5,11 @@ from typing import List, Union
 import anndata as ad
 import numpy as np
 import pandas as pd
+import scanpy as sc
 
 from sklearn.neighbors import KNeighborsClassifier
 
-from symphonypy.utils import _assign_clusters, _correct_query, _map_query_to_ref
+from symphonypy._utils import _assign_clusters, _correct_query, _map_query_to_ref
 
 
 logger = logging.getLogger("symphonypy")
@@ -111,7 +112,3 @@ def transfer_labels_kNN(
 
     # TODO: predict_proba
     adata_query.obs[query_labels] = knn.predict(adata_query.obsm[query_basis])
-
-
-# TODO:
-# def map_UMAP(adata_ref, adata_query):

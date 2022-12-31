@@ -37,7 +37,7 @@ def run_symphony(
         use_genes_column == "highly_variable" and "highly_variable" not in adata_ref.var
     )
     # HVG, PCA
-    sp.utils.preprocess_ref_PCA(
+    sp._utils.preprocess_ref_PCA(
         adata_ref,
         n_comps=n_comps,
         batch_keys=batch_keys,
@@ -89,6 +89,13 @@ def run_symphony(
         # kNN kwargs
         weights="distance",
     )
+
+    sc.pp.neighbors(
+        adata_ref, n_pcs=n_comps, n_neighbors=20, knn=True, use_rep=basis_adjusted
+    )
+    sc.tl.umap(adata_ref)
+
+    sc.tl.ingest(adata=adata_query, adata_ref=adata_ref, embedding_method="umap")
 
 
 if __name__ == "__main__":
