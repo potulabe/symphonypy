@@ -1,45 +1,10 @@
 # pylint: disable=E1123, W0621, C0116, W0511, E1121
 
-"""
-Symphony algorithm:
-
-1. Reference building:
-    - log(CP10K + 1) library size normalization of the cells
-    - subset by the top g variable genes
-        by the variance stabilizing transform (VST) method (as provided in Seurat18)
-    - scaling of the genes to have mean 0 and variance 1 (saving μ and σ for each gene)
-    - PCA (by default, d=20) to embed the reference cells
-        in a low-dimensional space, saving the gene loadings (U)
-    - Harmony (by default, Symphony uses the default parameters
-        for the cluster diversity enforcement (θ = 2),
-        the entropy regularization hyperparameter for soft k-means (s = 0.1),
-        and the number of clusters k = min(100; n/30) )
-    savings:
-        - gene means (μ) and standard deviations (σ) used to scale the genes
-        - PCA gene loadings
-        - clusters' centroids
-        - Nr and C
-
-2. Soft clustering of query
-    - map query to ref (just count coords in PCAs)
-    - assign clusters' memberships (soft k-means clustering with regularisation on enthropy)
-
-3. Mixture of experts correction
-    - count coefs for linear mixture of experts (matrix inverse)
-    - substract linear corrections for embedding by each cluster
-
-4. Label transfering
-    Use any unsupervised classification algorithm, e.g. kNN, to transfer labels from ref to query
-
-5*. Count mapping confidence metrics
-"""
-
 from typing import List
 import anndata as ad
 import scanpy as sc
 
-from symphonypy.preprocessing import preprocess_query_PCA, preprocess_ref_PCA
-from symphonypy.mapping import Symphony
+import symphonypy as sp
 
 
 def run_symphony(
@@ -47,42 +12,82 @@ def run_symphony(
     adata_query: ad.AnnData,
     batch_keys: List[str],
     n_comps: int,
+    harmony_args: List,
     harmony_kwargs: dict,
     lamb: float,
     labels: List[str],
-    k_neighbours: int,
+    n_neighbours: int,
     raw_counts: bool,
     n_top_genes: int,
+    use_genes_column: str,
 ) -> None:
-
-    # TODO: adata_ref and adata_query are mutated inside these functions
-    preprocess_ref_PCA(
+    """
+    This function is supposed to be used mostly for debugging
+    1. preprocessing
+        - preprocessing_ref(adata_ref)
+             -> adata_ref.uns["harmony"]
+        - preprocessing_query(adata_query, adata_ref)
+             -> adata_query["PCA_ref"]
+    2. run symphony
+        - adjust PCA
+        - transfer labels
+        - transfer UMAP
+    """
+    search_highly_variable = (
+        use_genes_column == "highly_variable" and "highly_variable" not in adata_ref.var
+    )
+    # HVG, PCA
+    sp.utils.preprocess_ref_PCA(
         adata_ref,
         n_comps=n_comps,
         batch_keys=batch_keys,
         raw_counts=raw_counts,
         n_top_genes=n_top_genes,
+        search_highly_variable=search_highly_variable,
     )
-    preprocess_query_PCA(adata_ref, adata_query, raw_counts=raw_counts)
 
-    # hard-coded for a while
-    query_basis = "X_pca_ref"
-    adjusted_basis = "X_pca_adjusted"
+    ref_basis_source = "X_pca"
+    basis_adjusted = "X_pca_adjusted"
 
-    # TODO: add an ability to save object to disk
-    so = Symphony(adata_ref, batch_keys=batch_keys, harmony_kwargs=harmony_kwargs)
+    ref_basis_loadings = "PCs"
+    query_basis_ref = "X_pca_ref"
 
-    so.fit()
-    so.transform(
+    # preprocess query
+    if raw_counts:
+        sc.pp.normalize_total(adata_query, target_sum=1e5)
+        sc.pp.log1p(adata_query)
+
+    sp.pp.harmony_integrate(
+        adata_ref,
+        ref_basis_source=ref_basis_source,
+        ref_basis_adjusted=basis_adjusted,
+        ref_basis_loadings=ref_basis_loadings,
+        vars_use=batch_keys,
+        *harmony_args,  # TODO: test if it works
+        **harmony_kwargs
+    )
+
+    sp.tl.map_embedding(
+        adata_ref,
         adata_query,
-        basis=query_basis,
-        adjusted_basis=adjusted_basis,
         batch_keys=batch_keys,
         lamb=lamb,
+        use_genes_column=use_genes_column,
+        adjusted_basis_query=basis_adjusted,
+        query_basis_ref=query_basis_ref,
     )
 
-    so.transfer_labels(
-        adata_query, adjusted_basis, adjusted_basis, labels, k_neighbours
+    sp.tl.transfer_labels_kNN(
+        adata_ref,
+        adata_query,
+        labels,
+        labels,
+        # kNN args
+        n_neighbours,
+        ref_basis=basis_adjusted,
+        query_basis=basis_adjusted,
+        # kNN kwargs
+        weights="distance",
     )
 
 
@@ -115,18 +120,21 @@ if __name__ == "__main__":
     harmony_kwargs = {"sigma": 0.1}
     lamb = 1
     n_top_genes = 2000
-    k_neighbours = 10
+    n_neighbours = 10
     labels = ["cell_type", "cell_subtype"]
+    use_genes_column = "highly_variable"
 
     run_symphony(
-        adata_ref,
-        adata_query,
-        batch_keys,
-        n_comps,
-        harmony_kwargs,
+        adata_ref=adata_ref,
+        adata_query=adata_query,
+        batch_keys=batch_keys,
+        n_comps=n_comps,
         lamb=lamb,
         labels=labels,
-        k_neighbours=k_neighbours,
+        n_neighbours=n_neighbours,
         raw_counts=raw_counts,
         n_top_genes=n_top_genes,
+        harmony_args=[],
+        harmony_kwargs=harmony_kwargs,
+        use_genes_column=use_genes_column,
     )

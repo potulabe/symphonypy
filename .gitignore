@@ -1,0 +1,7 @@
+data
+*.h5ad
+*.tar.gz
+testing*
+.vscode
+.ipynb_checkpoints
+*.pyc
