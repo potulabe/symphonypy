@@ -85,8 +85,8 @@ def map_embedding(
 def transfer_labels_kNN(
     adata_ref: ad.AnnData,
     adata_query: ad.AnnData,
-    ref_labels: list[str],
-    query_labels: Union[list[str], None],
+    ref_labels: List[str],
+    query_labels: Union[List[str], None],
     *kNN_args,
     ref_basis: str = "X_pca_adjusted",
     query_basis: str = "X_pca_adjusted",
