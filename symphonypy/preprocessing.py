@@ -3,12 +3,12 @@
 import anndata as ad
 import numpy as np
 from harmonypy import run_harmony, Harmony
-from typing import List
+from typing import List, Union
 
 
 def harmony_integrate(
     adata: ad.AnnData,
-    vars_use: List[str],
+    key: Union[List[str], str],
     *harmony_args,
     ref_basis_source: str = "X_pca",
     ref_basis_adjusted: str = "X_pca_adjusted",
@@ -27,13 +27,13 @@ def harmony_integrate(
             as input embedding to Harmony
         basis_adjusted (str): at adata.obsm[basis_adjusted]
             corrected embedding will be saved
-        vars_use (list[str]): which columns from adata.obs
+        key (Union[List[str], str]): which columns from adata.obs
             to use as batch keys (`vars_use` parameter of Harmony)
     """
     ref_ho = run_harmony(
         adata.obsm[ref_basis_source],
         meta_data=adata.obs,
-        vars_use=vars_use,
+        vars_use=key,
         *harmony_args,
         **harmony_kwargs
     )  # type: Harmony
@@ -54,7 +54,7 @@ def harmony_integrate(
         "sigma": ref_ho.sigma,
         "ref_basis_loadings": ref_basis_loadings,
         "ref_basis_adjusted": ref_basis_adjusted,
-        "vars_use": vars_use,
+        "vars_use": key,
         "harmony_args": harmony_args,
         "harmony_kwargs": harmony_kwargs,
     }
