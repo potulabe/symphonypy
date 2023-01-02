@@ -3,11 +3,12 @@
 import anndata as ad
 import numpy as np
 from harmonypy import run_harmony, Harmony
+from typing import List
 
 
 def harmony_integrate(
     adata: ad.AnnData,
-    vars_use: list[str],
+    vars_use: List[str],
     *harmony_args,
     ref_basis_source: str = "X_pca",
     ref_basis_adjusted: str = "X_pca_adjusted",
