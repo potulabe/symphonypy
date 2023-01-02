@@ -1,19 +1,19 @@
 # pylint: disable=C0103, W0511, C0114
 
-import anndata as ad
+from anndata import AnnData
 import numpy as np
 from harmonypy import run_harmony, Harmony
 from typing import List, Union
 
 
 def harmony_integrate(
-    adata: ad.AnnData,
+    adata: AnnData,
     key: Union[List[str], str],
     *harmony_args,
     ref_basis_source: str = "X_pca",
     ref_basis_adjusted: str = "X_pca_harmony",
     ref_basis_loadings: str = "PCs",
-    **harmony_kwargs
+    **harmony_kwargs,
 ):
     """
     Run Harmony batch correction on adata,
@@ -36,7 +36,7 @@ def harmony_integrate(
         vars_use=key,
         *harmony_args,
         **harmony_kwargs
-    )  # type: Harmony
+    )
 
     adata.obsm[ref_basis_adjusted] = ref_ho.Z_corr.T
 
