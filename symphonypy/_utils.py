@@ -2,9 +2,10 @@
 
 import logging
 from typing import List, Union
-import anndata as ad
 import numpy as np
 import scanpy as sc
+
+from anndata import AnnData
 
 logger = logging.getLogger("symphonypy")
 
@@ -74,11 +75,12 @@ def _correct_query(
 
 
 def _map_query_to_ref(
-    adata_ref: ad.AnnData,
-    adata_query: ad.AnnData,
-    query_basis_ref: str,
-    ref_basis_loadings: str,
-    use_genes_column: str,
+    adata_ref: AnnData,
+    adata_query: AnnData,
+    query_basis_ref: str = "X_pca_reference",
+    ref_basis_loadings: str = "PCs",
+    max_value: float = 10.0,
+    use_genes_column: str = "highly_variable",
 ):
     use_genes_list = np.array(adata_ref.var_names[adata_ref.var[use_genes_column]])
 
@@ -87,12 +89,12 @@ def _map_query_to_ref(
 
     use_genes_list_present = np.isin(use_genes_list, adata_query.var_names)
 
-    # adjusting for missing genes
+    # Adjusting for missing genes.
     if not all(use_genes_list_present):
         logger.warning(
             "%i out of %i "
             "genes from reference are missing in query dataset, "
-            "their expressions will be set to zero",
+            "their expressions will be set to zero ",
             (~use_genes_list_present).sum(),
             use_genes_list.shape[0],
         )
@@ -110,6 +112,7 @@ def _map_query_to_ref(
     stds = stds[stds != 0]
 
     t = (t - means[np.newaxis]) / stds[np.newaxis]
+    t = np.clip(t, -max_value, max_value)
 
     # set zero expression to missing genes after scaling
     t[:, ~use_genes_list_present] = 0
@@ -119,37 +122,3 @@ def _map_query_to_ref(
     adata_query.obsm[query_basis_ref] = np.array(
         t * adata_ref.varm[ref_basis_loadings][adata_ref.var_names.isin(use_genes_list)]
     )
-
-
-def preprocess_ref_PCA(
-    adata,
-    n_comps: int,
-    batch_keys: List[str],
-    raw_counts: bool,
-    n_top_genes: int,
-    search_highly_variable: bool = True,
-) -> None:
-
-    adata.obs["batch_symphonypy"] = (
-        (adata.obs[batch_keys]).astype(str).agg("_".join, axis=1)
-    )
-
-    if raw_counts:
-        if search_highly_variable:
-            sc.pp.highly_variable_genes(
-                adata,
-                batch_key="batch_symphonypy",
-                n_top_genes=n_top_genes,
-                flavor="seurat_v3",
-            )
-        sc.pp.normalize_total(adata, target_sum=1e5)
-        sc.pp.log1p(adata)
-
-    elif search_highly_variable:
-        sc.pp.highly_variable_genes(
-            adata, batch_key="batch_symphonypy", n_top_genes=n_top_genes
-        )
-
-    sc.pp.scale(adata, zero_center=True)
-
-    sc.tl.pca(adata, n_comps=n_comps)
