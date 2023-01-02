@@ -2,7 +2,7 @@
 
 import logging
 from typing import List, Union
-import anndata as ad
+from anndata import AnnData
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -16,12 +16,12 @@ logger = logging.getLogger("symphonypy")
 
 
 def map_embedding(
-    adata_ref: ad.AnnData,
-    adata_query: ad.AnnData,
+    adata_ref: AnnData,
+    adata_query: AnnData,
     batch_keys: List[str],
     lamb: Union[float, np.array, None],
     use_genes_column: str = "highly_variable",
-    adjusted_basis_query: str = "X_pca_adjusted",
+    adjusted_basis_query: str = "X_pca_harmony",
     query_basis_ref: str = "X_pca_ref",
 ) -> None:
 
