@@ -11,7 +11,7 @@ def harmony_integrate(
     key: Union[List[str], str],
     *harmony_args,
     ref_basis_source: str = "X_pca",
-    ref_basis_adjusted: str = "X_pca_adjusted",
+    ref_basis_adjusted: str = "X_pca_harmony",
     ref_basis_loadings: str = "PCs",
     **harmony_kwargs
 ):
