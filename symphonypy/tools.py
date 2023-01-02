@@ -2,14 +2,14 @@
 
 import logging
 from typing import List, Union
-from anndata import AnnData
 import numpy as np
 import pandas as pd
 import scanpy as sc
 
 from sklearn.neighbors import KNeighborsClassifier
+from anndata import AnnData
 
-from _utils import _assign_clusters, _correct_query, _map_query_to_ref
+from ._utils import _assign_clusters, _correct_query, _map_query_to_ref
 
 
 logger = logging.getLogger("symphonypy")
@@ -18,8 +18,8 @@ logger = logging.getLogger("symphonypy")
 def map_embedding(
     adata_ref: AnnData,
     adata_query: AnnData,
-    key: Union[List[str], str],
-    lamb: Union[float, np.array, None] = 1.0,
+    key: Union[List[str], str, None] = None,
+    lamb: Union[float, np.array, None] = None,
     use_genes_column: str = "highly_variable",
     adjusted_basis_query: str = "X_pca_harmony",
     query_basis_ref: str = "X_pca_ref",
@@ -41,7 +41,7 @@ def map_embedding(
     harmony_ref = adata_ref.uns["harmony"]
     ref_basis_loadings = harmony_ref["ref_basis_loadings"]
 
-    # 1. map query to ref initial embedding, e. g. PCA
+    # 1. map query to ref initial embedding
     _map_query_to_ref(
         adata_ref=adata_ref,
         adata_query=adata_query,
@@ -57,7 +57,12 @@ def map_embedding(
 
     # 3. correct query embeddings
     # likewise harmonypy
-    batch_data = adata_query.obs[key]
+    if key is None:
+      batch_data = pd.DataFrame({"batch" : ["1"] * len(adata_query)})
+    elif type(key) == str:
+      batch_data = pd.DataFrame(adata_query.obs[key]).astype(str)
+    else:
+      batch_data = adata_query.obs[key].astype(str)
     # [B, N] = [N, B].T  (B -- batch num)
     phi = pd.get_dummies(batch_data).to_numpy().T
     # [B + 1, N]
