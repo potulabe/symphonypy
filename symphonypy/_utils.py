@@ -1,6 +1,7 @@
 # pylint: disable=C0103, C0116, C0114, C0115, W0511
 
 import logging
+from pickle import NONE
 from typing import List, Union
 import numpy as np
 import scanpy as sc
@@ -16,12 +17,10 @@ logger = logging.getLogger("symphonypy")
 
 def _assign_clusters(X: np.array, sigma: np.array, Y: np.array) -> np.array:
     """_summary_
-
     Args:
         X (np.array): _description_
         sigma (np.array): _description_
         Y (np.array): _description_
-
     Returns:
         np.array: _description_
     """
@@ -79,7 +78,7 @@ def _map_query_to_ref(
     adata_query: AnnData,
     query_basis_ref: str = "X_pca_reference",
     ref_basis_loadings: str = "PCs",
-    max_value: float = 10.0,
+    max_value: Union[float, None] = 10.0,
     use_genes_column: str = "highly_variable",
 ):
     use_genes_list = np.array(adata_ref.var_names[adata_ref.var[use_genes_column]])
@@ -112,7 +111,7 @@ def _map_query_to_ref(
     stds = stds[stds != 0]
 
     t = (t - means[np.newaxis]) / stds[np.newaxis]
-    t = np.clip(t, -max_value, max_value)
+    t = np.clip(t, None, max_value)
 
     # set zero expression to missing genes after scaling
     t[:, ~use_genes_list_present] = 0
@@ -120,5 +119,5 @@ def _map_query_to_ref(
     # map query to reference's PCA coords
     # [cells, n_comps] = [cells, genes] * [genes, n_comps]
     adata_query.obsm[query_basis_ref] = np.array(
-        t * adata_ref.varm[ref_basis_loadings][adata_ref.var_names.isin(use_genes_list)]
+        t @ adata_ref.varm[ref_basis_loadings][adata_ref.var_names.isin(use_genes_list)]
     )
