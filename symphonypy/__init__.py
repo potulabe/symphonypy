@@ -32,6 +32,6 @@ Symphony algorithm:
 5*. Count mapping confidence metrics
 """
 
-from . import pp
-from . import tl
+from . import preprocessing as pp
+from . import tools as tl
 from . import _utils
