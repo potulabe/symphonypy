@@ -1,15 +1,15 @@
 # pylint: disable=E1123, W0621, C0116, W0511, E1121
 
 from typing import List
-import anndata as ad
+from anndata import AnnData
 import scanpy as sc
 
 import symphonypy as sp
 
 
 def run_symphony(
-    adata_ref: ad.AnnData,
-    adata_query: ad.AnnData,
+    adata_ref: AnnData,
+    adata_query: AnnData,
     batch_keys: List[str],
     n_comps: int,
     harmony_args: List,
@@ -47,7 +47,7 @@ def run_symphony(
     )
 
     ref_basis_source = "X_pca"
-    basis_adjusted = "X_pca_adjusted"
+    basis_adjusted = "X_pca_harmony"
 
     ref_basis_loadings = "PCs"
     query_basis_ref = "X_pca_ref"
@@ -62,7 +62,7 @@ def run_symphony(
         ref_basis_source=ref_basis_source,
         ref_basis_adjusted=basis_adjusted,
         ref_basis_loadings=ref_basis_loadings,
-        vars_use=batch_keys,
+        key=batch_keys,
         *harmony_args,  # TODO: test if it works
         **harmony_kwargs
     )
