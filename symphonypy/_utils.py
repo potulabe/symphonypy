@@ -26,15 +26,14 @@ def _harmony_integrate_R(
     """
     import shutil
 
-    try:
-        import rpy2
-    except ImportError:
-        raise ImportError("\nplease install rpy2:\n\n\tpip install rpy2")
-
-    from rpy2.robjects.packages import importr
-
     if not shutil.which("R"):
-        raise Exception("R installation is necessary.")
+        raise Exception(
+            "R installation is necessary."
+        )
+    try:
+        from rpy2.robjects.packages import importr
+    except ImportError:
+        raise ImportError("\nPlease install rpy2:\n\n\tpip install rpy2")
     try:
         harmony = importr("harmony")
     except Exception as e:
