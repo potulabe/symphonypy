@@ -1,10 +1,8 @@
 # pylint: disable=C0103, C0116, C0114, C0115, W0511
 
 import logging
-from pickle import NONE
 from typing import List, Union
 import numpy as np
-import scanpy as sc
 
 from anndata import AnnData
 
@@ -14,6 +12,69 @@ logger = logging.getLogger("symphonypy")
 # TODO:
 # def _compute_confidence()
 
+
+def _harmony_integrate_R(
+    adata: AnnData,
+    key: Union[List[str], str],
+    basis: str = "X_pca",
+    adjusted_basis: str = "X_pca_harmony",
+    **kwargs,
+) -> None:
+    """
+    Function description.
+    """
+    import shutil
+
+    if not shutil.which("R"):
+        raise Exception(
+            "R installation is necessary."
+        )
+    try:
+        harmony = importr("harmony")
+    except Exception as e:
+        raise Exception(
+            'R package "Harmony" is necessary.\n'
+            'Please install it from https://github.com/immunogenomics/harmony and try again'
+        )
+    try:
+        import rpy2
+    except ImportError:
+        raise ImportError("\nplease install rpy2:\n\n\tpip install rpy2")
+    
+    from rpy2.robjects import numpy2ri, pandas2ri, default_converter
+    from rpy2.robjects.conversion import localconverter
+    import rpy2.rinterface_lib.callbacks
+    rpy2.rinterface_lib.callbacks.consolewrite_warnerror = lambda x: print(x, end="")
+
+    dollar = importr("base").__dict__["$"]
+
+    with localconverter(
+        default_converter + numpy2ri.converter + pandas2ri.converter
+    ) as cv:
+        ho = harmony.HarmonyMatrix(
+            adata.obsm[basis],
+            adata.obs,
+            key,
+            do_pca=False,
+            return_object=True,
+            **kwargs,
+        )
+        R = dollar(ho, "R")
+        Z_corr = dollar(ho, "Z_corr").T
+        K = dollar(ho, "K")
+        Y = dollar(ho, "Y")
+        sigma = dollar(ho, "sigma")
+
+        adata.uns["harmony"] = {
+            "Nr": R.sum(axis=1),
+            "C": R @ Z_corr,
+            "Y": Y.T,
+            "K": K[0],
+            "sigma": sigma.squeeze(1),
+            "ref_basis_loadings": "PCs",
+            "ref_basis_adjusted": adjusted_basis,
+        }
+        adata.obsm[adjusted_basis] = Z_corr
 
 def _assign_clusters(X: np.array, sigma: np.array, Y: np.array) -> np.array:
     """_summary_
