@@ -30,17 +30,17 @@ def _harmony_integrate_R(
             "R installation is necessary."
         )
     try:
+        from rpy2.robjects.packages import importr
+    except ImportError:
+        raise ImportError("\nPlease install rpy2:\n\n\tpip install rpy2")
+    try:
         harmony = importr("harmony")
     except Exception as e:
         raise Exception(
             'R package "Harmony" is necessary.\n'
             'Please install it from https://github.com/immunogenomics/harmony and try again'
         )
-    try:
-        import rpy2
-    except ImportError:
-        raise ImportError("\nplease install rpy2:\n\n\tpip install rpy2")
-    
+        
     from rpy2.robjects import numpy2ri, pandas2ri, default_converter
     from rpy2.robjects.conversion import localconverter
     import rpy2.rinterface_lib.callbacks
