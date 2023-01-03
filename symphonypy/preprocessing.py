@@ -44,7 +44,7 @@ def harmony_integrate(
         # [K] the number of cells softly belonging to each cluster
         "Nr": ref_ho.R.sum(axis=1),
         # [K, d] = [K, Nref] x [d, N_ref].T
-        "C": np.dot(ref_ho.R, ref_ho.Z_corr.T),
+        "C": ref_ho.R @ ref_ho.Z_corr.T,
         # ref cluster centroids L2 normalized
         # [K, d] = [d, K].T
         "Y": ref_ho.Y.T,
