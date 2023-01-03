@@ -5,6 +5,7 @@ from typing import List, Union
 import numpy as np
 import pandas as pd
 import scanpy as sc
+import warnings
 
 from sklearn.neighbors import KNeighborsClassifier
 from anndata import AnnData
@@ -24,7 +25,15 @@ def map_embedding(
     adjusted_basis_query: str = "X_pca_harmony",
     query_basis_ref: str = "X_pca_ref",
 ) -> None:
-
+    """
+    Args:
+        adata_ref (AnnData): _description_
+        adata_query (AnnData): _description_
+        key (Union[List[str], str, None]): _description_
+        query_basis (str): _description_
+        lamb (Union[float, np.array, None]): _description_
+    """
+    # Errors
     assert (
         "mean" in adata_ref.var
     ), "Gene expression means are expected to be saved in adata_ref.var"
@@ -37,6 +46,10 @@ def map_embedding(
     assert (
         use_genes_column in adata_ref.var
     ), f"Column `{use_genes_column}` not found in adata_ref.var"
+    
+    # Warning
+    if "log1p" not in adata_query.uns:
+        warnings.warn("Gene expressions in adata_query should be log1p-transformed")
 
     harmony_ref = adata_ref.uns["harmony"]
     ref_basis_loadings = harmony_ref["ref_basis_loadings"]
@@ -86,30 +99,27 @@ def map_embedding(
         X, phi_, R, harmony_ref["K"], harmony_ref["Nr"], harmony_ref["C"], lamb
     )
 
-
+    
 def transfer_labels_kNN(
     adata_ref: AnnData,
     adata_query: AnnData,
-    ref_labels: List[str],
-    query_labels: Union[List[str], None],
+    ref_labels: Union[List[str], str],
+    query_labels: Union[List[str], None] = None,
     *kNN_args,
     ref_basis: str = "X_pca_harmony",
     query_basis: str = "X_pca_harmony",
     **kNN_kwargs,
 ) -> None:
     """
-
     Args:
-        adata_ref (ad.AnnData): _description_
-        adata_query (ad.AnnData): _description_
+        adata_ref (AnnData): _description_
+        adata_query (AnnData): _description_
         ref_basis (str): _description_
         query_basis (str): _description_
-        ref_labels (list[str]): keys from adata_ref.obs to transfer to adata_query
-        query_labels (list[str] | None): keys in adata_query.obs where to save transferred ref_labels
-            (in corresponding to ref_labels order)
-            If not provided, same as ref_labels will be used
+        ref_labels (list[str]): keys from adata_ref.obs to transfer to adata_query. Default: "X_pca_harmony"
+        query_labels (list[str] | None): keys in adata_query.obs where to save transferred ref_labels.
+            (in corresponding to ref_labels order). If not provided, same as ref_labels will be used
         n_neighbors (int): kNN parameter
-
     """
     knn = KNeighborsClassifier(*kNN_args, **kNN_kwargs)
 
