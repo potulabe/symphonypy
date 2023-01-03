@@ -1,7 +1,8 @@
 # pylint: disable=C0103, C0116, C0114, C0115, W0511
+from __future__ import annotations
 
 import logging
-from typing import List, Union
+
 import numpy as np
 
 from anndata import AnnData
@@ -15,7 +16,7 @@ logger = logging.getLogger("symphonypy")
 
 def _harmony_integrate_R(
     adata: AnnData,
-    key: Union[List[str], str],
+    key: list[str] | str,
     basis: str = "X_pca",
     adjusted_basis: str = "X_pca_harmony",
     **kwargs,
@@ -25,25 +26,27 @@ def _harmony_integrate_R(
     """
     import shutil
 
+    try:
+        import rpy2
+    except ImportError:
+        raise ImportError("\nplease install rpy2:\n\n\tpip install rpy2")
+
+    from rpy2.robjects.packages import importr
+
     if not shutil.which("R"):
-        raise Exception(
-            "R installation is necessary."
-        )
+        raise Exception("R installation is necessary.")
     try:
         harmony = importr("harmony")
     except Exception as e:
         raise Exception(
             'R package "Harmony" is necessary.\n'
-            'Please install it from https://github.com/immunogenomics/harmony and try again'
-        )
-    try:
-        import rpy2
-    except ImportError:
-        raise ImportError("\nplease install rpy2:\n\n\tpip install rpy2")
-    
+            "Please install it from https://github.com/immunogenomics/harmony and try again"
+        ) from e
+
     from rpy2.robjects import numpy2ri, pandas2ri, default_converter
     from rpy2.robjects.conversion import localconverter
     import rpy2.rinterface_lib.callbacks
+
     rpy2.rinterface_lib.callbacks.consolewrite_warnerror = lambda x: print(x, end="")
 
     dollar = importr("base").__dict__["$"]
@@ -75,6 +78,7 @@ def _harmony_integrate_R(
             "ref_basis_adjusted": adjusted_basis,
         }
         adata.obsm[adjusted_basis] = Z_corr
+
 
 def _assign_clusters(X: np.array, sigma: np.array, Y: np.array) -> np.array:
     """_summary_
@@ -139,9 +143,16 @@ def _map_query_to_ref(
     adata_query: AnnData,
     query_basis_ref: str = "X_pca_reference",
     ref_basis_loadings: str = "PCs",
-    max_value: Union[float, None] = 10.0,
+    max_value: float | None = 10.0,
     use_genes_column: str = "highly_variable",
 ):
+    assert (
+        "mean" in adata_ref.var
+    ), "Gene expression means are expected to be saved in adata_ref.var"
+    assert (
+        "std" in adata_ref.var
+    ), "Gene expression stds are expected to be saved in adata_ref.var"
+
     use_genes_list = np.array(adata_ref.var_names[adata_ref.var[use_genes_column]])
 
     stds = np.array(adata_ref.var["std"][adata_ref.var[use_genes_column]])

@@ -1,14 +1,14 @@
 # pylint: disable=C0103, W0511, C0114
+from __future__ import annotations
 
-from anndata import AnnData
 import numpy as np
-from harmonypy import run_harmony, Harmony
-from typing import List, Union
+from anndata import AnnData
+from harmonypy import run_harmony
 
 
 def harmony_integrate(
     adata: AnnData,
-    key: Union[List[str], str],
+    key: list[str] | str,
     *harmony_args,
     ref_basis_source: str = "X_pca",
     ref_basis_adjusted: str = "X_pca_harmony",
@@ -27,7 +27,7 @@ def harmony_integrate(
             as input embedding to Harmony
         basis_adjusted (str): at adata.obsm[basis_adjusted]
             corrected embedding will be saved
-        key (Union[List[str], str]): which columns from adata.obs
+        key (list[str] | str): which columns from adata.obs
             to use as batch keys (`vars_use` parameter of Harmony)
     """
     ref_ho = run_harmony(
@@ -35,7 +35,7 @@ def harmony_integrate(
         meta_data=adata.obs,
         vars_use=key,
         *harmony_args,
-        **harmony_kwargs
+        **harmony_kwargs,
     )
 
     adata.obsm[ref_basis_adjusted] = ref_ho.Z_corr.T

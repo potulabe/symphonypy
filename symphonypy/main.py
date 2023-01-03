@@ -1,8 +1,9 @@
 # pylint: disable=E1123, W0621, C0116, W0511, E1121
 
-from typing import List
-from anndata import AnnData
+from __future__ import annotations
+
 import scanpy as sc
+from anndata import AnnData
 
 import symphonypy as sp
 
@@ -10,12 +11,12 @@ import symphonypy as sp
 def run_symphony(
     adata_ref: AnnData,
     adata_query: AnnData,
-    batch_keys: List[str],
+    batch_keys: list[str],
     n_comps: int,
-    harmony_args: List,
+    harmony_args: list,
     harmony_kwargs: dict,
     lamb: float,
-    labels: List[str],
+    labels: list[str],
     n_neighbours: int,
     raw_counts: bool,
     n_top_genes: int,
@@ -37,20 +38,35 @@ def run_symphony(
         use_genes_column == "highly_variable" and "highly_variable" not in adata_ref.var
     )
     # HVG, PCA
-    sp._utils.preprocess_ref_PCA(
-        adata_ref,
-        n_comps=n_comps,
-        batch_keys=batch_keys,
-        raw_counts=raw_counts,
-        n_top_genes=n_top_genes,
-        search_highly_variable=search_highly_variable,
+    adata_ref.obs["batch_symphonypy"] = (
+        (adata_ref.obs[batch_keys]).astype(str).agg("_".join, axis=1)
     )
+
+    if raw_counts:
+        if search_highly_variable:
+            sc.pp.highly_variable_genes(
+                adata_ref,
+                batch_key="batch_symphonypy",
+                n_top_genes=n_top_genes,
+                flavor="seurat_v3",
+            )
+        sc.pp.normalize_total(adata_ref, target_sum=1e5)
+        sc.pp.log1p(adata_ref)
+
+    elif search_highly_variable:
+        sc.pp.highly_variable_genes(
+            adata_ref, batch_key="batch_symphonypy", n_top_genes=n_top_genes
+        )
+
+    sc.pp.scale(adata_ref, zero_center=True, max_value=10)
+
+    sc.tl.pca(adata_ref, n_comps=n_comps)
 
     ref_basis_source = "X_pca"
     basis_adjusted = "X_pca_harmony"
 
     ref_basis_loadings = "PCs"
-    query_basis_ref = "X_pca_ref"
+    query_basis_ref = "X_pca_reference"
 
     # preprocess query
     if raw_counts:
@@ -64,13 +80,13 @@ def run_symphony(
         ref_basis_loadings=ref_basis_loadings,
         key=batch_keys,
         *harmony_args,  # TODO: test if it works
-        **harmony_kwargs
+        **harmony_kwargs,
     )
 
     sp.tl.map_embedding(
         adata_ref,
         adata_query,
-        batch_keys=batch_keys,
+        key=batch_keys,
         lamb=lamb,
         use_genes_column=use_genes_column,
         adjusted_basis_query=basis_adjusted,

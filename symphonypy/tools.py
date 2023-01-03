@@ -1,7 +1,8 @@
 # pylint: disable=C0103, C0116, C0114, C0115, W0511
+from __future__ import annotations
 
 import logging
-from typing import List, Union
+
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -19,11 +20,11 @@ logger = logging.getLogger("symphonypy")
 def map_embedding(
     adata_ref: AnnData,
     adata_query: AnnData,
-    key: Union[List[str], str, None] = None,
-    lamb: Union[float, np.array, None] = None,
+    key: list[str] | str | None = None,
+    lamb: float | np.array | None = None,
     use_genes_column: str = "highly_variable",
     adjusted_basis_query: str = "X_pca_harmony",
-    query_basis_ref: str = "X_pca_ref",
+    query_basis_ref: str = "X_pca_reference",
 ) -> None:
     """
     Args:
@@ -103,8 +104,8 @@ def map_embedding(
 def transfer_labels_kNN(
     adata_ref: AnnData,
     adata_query: AnnData,
-    ref_labels: Union[List[str], str],
-    query_labels: Union[List[str], None] = None,
+    ref_labels: list[str] | str,
+    query_labels: list[str] | None = None,
     *kNN_args,
     ref_basis: str = "X_pca_harmony",
     query_basis: str = "X_pca_harmony",
