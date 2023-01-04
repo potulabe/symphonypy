@@ -47,7 +47,7 @@ def map_embedding(
     assert (
         use_genes_column in adata_ref.var
     ), f"Column `{use_genes_column}` not found in adata_ref.var"
-    
+
     # Warning
     if "log1p" not in adata_query.uns:
         warnings.warn("Gene expressions in adata_query should be log1p-transformed")
@@ -72,11 +72,11 @@ def map_embedding(
     # 3. correct query embeddings
     # likewise harmonypy
     if key is None:
-      batch_data = pd.DataFrame({"batch" : ["1"] * len(adata_query)})
+        batch_data = pd.DataFrame({"batch": ["1"] * len(adata_query)})
     elif type(key) == str:
-      batch_data = pd.DataFrame(adata_query.obs[key]).astype(str)
+        batch_data = pd.DataFrame(adata_query.obs[key]).astype(str)
     else:
-      batch_data = adata_query.obs[key].astype(str)
+        batch_data = adata_query.obs[key].astype(str)
     # [B, N] = [N, B].T  (B -- batch num)
     phi = pd.get_dummies(batch_data).to_numpy().T
     # [B + 1, N]
@@ -100,7 +100,7 @@ def map_embedding(
         X, phi_, R, harmony_ref["K"], harmony_ref["Nr"], harmony_ref["C"], lamb
     )
 
-    
+
 def transfer_labels_kNN(
     adata_ref: AnnData,
     adata_query: AnnData,

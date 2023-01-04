@@ -1,9 +1,14 @@
 # pylint: disable=C0103, W0511, C0114
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 from anndata import AnnData
 from harmonypy import run_harmony
+
+
+logger = logging.getLogger("symphonypy")
 
 
 def harmony_integrate(
@@ -13,6 +18,7 @@ def harmony_integrate(
     ref_basis_source: str = "X_pca",
     ref_basis_adjusted: str = "X_pca_harmony",
     ref_basis_loadings: str = "PCs",
+    verbose: bool = False,
     **harmony_kwargs,
 ):
     """
@@ -34,11 +40,14 @@ def harmony_integrate(
         adata.obsm[ref_basis_source],
         meta_data=adata.obs,
         vars_use=key,
+        verbose=verbose,
         *harmony_args,
         **harmony_kwargs,
     )
 
     adata.obsm[ref_basis_adjusted] = ref_ho.Z_corr.T
+
+    converged = ref_ho.check_convergence(1)
 
     adata.uns["harmony"] = {
         # [K] the number of cells softly belonging to each cluster
@@ -57,4 +66,10 @@ def harmony_integrate(
         "vars_use": key,
         "harmony_args": harmony_args,
         "harmony_kwargs": harmony_kwargs,
+        "converged": converged,
     }
+
+    if not converged:
+        logger.warning(
+            "Harmony didn't converge. Consider increasing max_iter_harmony parameter value"
+        )

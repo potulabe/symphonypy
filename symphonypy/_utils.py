@@ -19,17 +19,19 @@ def _harmony_integrate_R(
     key: list[str] | str,
     basis: str = "X_pca",
     adjusted_basis: str = "X_pca_harmony",
+    random_seed: int = 1,
+    clear_ram: bool = True,
+    verbose: bool = False,
     **kwargs,
 ) -> None:
     """
-    Function description.
+    Function description. Exhaustively.
     """
+
     import shutil
 
     if not shutil.which("R"):
-        raise Exception(
-            "R installation is necessary."
-        )
+        raise Exception("R installation is necessary.")
     try:
         from rpy2.robjects.packages import importr
     except ImportError:
@@ -42,6 +44,7 @@ def _harmony_integrate_R(
             "Please install it from https://github.com/immunogenomics/harmony and try again"
         ) from e
 
+    import rpy2.robjects as ro
     from rpy2.robjects import numpy2ri, pandas2ri, default_converter
     from rpy2.robjects.conversion import localconverter
     import rpy2.rinterface_lib.callbacks
@@ -49,18 +52,26 @@ def _harmony_integrate_R(
     rpy2.rinterface_lib.callbacks.consolewrite_warnerror = lambda x: print(x, end="")
 
     dollar = importr("base").__dict__["$"]
+    set_seed = ro.r("set.seed")
 
     with localconverter(
         default_converter + numpy2ri.converter + pandas2ri.converter
     ) as cv:
+
+        set_seed(random_seed)
+
         ho = harmony.HarmonyMatrix(
             adata.obsm[basis],
             adata.obs,
             key,
             do_pca=False,
             return_object=True,
+            verbose=verbose,
             **kwargs,
         )
+
+        converged = dollar(ho, "check_convergence")(1)[0]
+
         R = dollar(ho, "R")
         Z_corr = dollar(ho, "Z_corr").T
         K = dollar(ho, "K")
@@ -75,8 +86,18 @@ def _harmony_integrate_R(
             "sigma": sigma.squeeze(1),
             "ref_basis_loadings": "PCs",
             "ref_basis_adjusted": adjusted_basis,
+            "converged": converged,
         }
         adata.obsm[adjusted_basis] = Z_corr
+
+    if clear_ram:
+        ro.r("rm(ho)")
+        ro.r("gc()")
+
+    if not converged:
+        logger.warning(
+            "Harmony didn't converge. Consider increasing max.iter.harmony parameter value"
+        )
 
 
 def _assign_clusters(X: np.array, sigma: np.array, Y: np.array) -> np.array:
