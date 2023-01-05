@@ -52,13 +52,12 @@ def _harmony_integrate_R(
     rpy2.rinterface_lib.callbacks.consolewrite_warnerror = lambda x: print(x, end="")
 
     dollar = importr("base").__dict__["$"]
-    set_seed = ro.r("set.seed")
 
     with localconverter(
         default_converter + numpy2ri.converter + pandas2ri.converter
     ) as cv:
 
-        set_seed(random_seed)
+        importr("base").set_seed(random_seed)
 
         ho = harmony.HarmonyMatrix(
             adata.obsm[basis],
