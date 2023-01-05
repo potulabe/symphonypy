@@ -13,15 +13,62 @@ logger = logging.getLogger("symphonypy")
 # TODO:
 # def _compute_confidence()
 
+def _harmony_integrate_python(
+    adata: AnnData,
+    key: list[str] | str,
+    ref_basis_source: str = "X_pca",
+    ref_basis_adjusted: str = "X_pca_harmony",
+    ref_basis_loadings: str = "PCs",
+    verbose: bool = False,
+    **harmony_kwargs,
+):
+    ref_ho = run_harmony(
+        adata.obsm[ref_basis_source],
+        meta_data=adata.obs,
+        vars_use=key,
+        verbose=verbose,
+        **harmony_kwargs,
+    )
+
+    adata.obsm[ref_basis_adjusted] = ref_ho.Z_corr.T
+
+    converged = ref_ho.check_convergence(1)
+
+    adata.uns["harmony"] = {
+        # [K] the number of cells softly belonging to each cluster
+        "Nr": ref_ho.R.sum(axis=1),
+        # [K, d] = [K, Nref] x [d, N_ref].T
+        "C": ref_ho.R @ ref_ho.Z_corr.T,
+        # ref cluster centroids L2 normalized
+        # [K, d] = [d, K].T
+        "Y": ref_ho.Y.T,
+        # number of clusters
+        "K": ref_ho.K,
+        # sigma [K] (cluster cross enthropy regularization coef)
+        "sigma": ref_ho.sigma,
+        "ref_basis_loadings": ref_basis_loadings,
+        "ref_basis_adjusted": ref_basis_adjusted,
+        "vars_use": key,
+        "harmony_args": harmony_args,
+        "harmony_kwargs": harmony_kwargs,
+        "converged": converged,
+    }
+
+    if not converged:
+        logger.warning(
+            "Harmony didn't converge. Consider increasing max_iter_harmony parameter value"
+        )
+    
 
 def _harmony_integrate_R(
     adata: AnnData,
     key: list[str] | str,
     basis: str = "X_pca",
     adjusted_basis: str = "X_pca_harmony",
+    ref_basis_loadings: str = "PCs",
     random_seed: int = 1,
     verbose: bool = False,
-    **kwargs,
+    **harmony_kwargs,
 ) -> None:
     """
     Function description. Exhaustively.
@@ -65,7 +112,7 @@ def _harmony_integrate_R(
             do_pca=False,
             return_object=True,
             verbose=verbose,
-            **kwargs,
+            **harmony_kwargs,
         )
 
         converged = dollar(ho, "check_convergence")(1)[0]
@@ -82,7 +129,7 @@ def _harmony_integrate_R(
             "Y": Y.T,
             "K": K[0],
             "sigma": sigma.squeeze(1),
-            "ref_basis_loadings": "PCs",
+            "ref_basis_loadings": ref_basis_loadings,
             "ref_basis_adjusted": adjusted_basis,
             "converged": converged,
         }
