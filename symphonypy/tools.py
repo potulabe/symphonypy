@@ -134,11 +134,12 @@ def tsne(
     adata: AnnData,
     use_rep: str = "X_pca",
     t_sne_slot: str = "X_tsne",
-    use_model: str | None = None,
+    use_model: "TSNEEmbedding" | str | None = None,
     save_path: str | None = None,
     use_raw: bool | None = None,
+    return_model: bool = False,
     **kwargs,
-) -> None:
+) -> None | "TSNEEmbedding":
     """
     Args:
         adata (AnnData): _description_
@@ -147,6 +148,7 @@ def tsne(
         use_model (str | None | TSNEEmbedding): _description_
         save_path (str | None): _description_
         use_raw (bool | None): _description_
+        return_model (bool): _description_
         **kwargs: _description_
     """
     import pickle
@@ -156,8 +158,10 @@ def tsne(
         from openTSNE import TSNEEmbedding
     except ImportError:
         raise ImportError("\nPlease install openTSNE:\n\n\tpip install openTSNE")
+        
     if not (use_model is None) and not (save_path is None):
         logger.warning("The model that will be saved is a `PartialTSNEEmbedding`")
+        
     if use_model is None:
         tsne = TSNE(**kwargs)
         if use_rep != "X":
@@ -186,3 +190,5 @@ def tsne(
         with open(save_path, "wb") as model_file:
             pickle.dump(model, model_file, protocol=pickle.HIGHEST_PROTOCOL)
             print(f"Model is saved in {save_path}")
+    if return_model:
+        return model
