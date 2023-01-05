@@ -128,3 +128,61 @@ def transfer_labels_kNN(
 
     # TODO: predict_proba
     adata_query.obs[query_labels] = knn.predict(adata_query.obsm[query_basis])
+
+    
+def tsne(
+    adata: AnnData,
+    use_rep: str = "X_pca",
+    t_sne_slot: str = "X_tsne",
+    use_model: str | None = None,
+    save_path: str | None = None,
+    use_raw: bool | None = None,
+    **kwargs,
+) -> None:
+    """
+    Args:
+        adata (AnnData): _description_
+        use_rep (str): _description_
+        t_sne_slot (str): _description_
+        use_model (str | None | TSNEEmbedding): _description_
+        save_path (str | None): _description_
+        use_raw (bool | None): _description_
+        **kwargs: _description_
+    """
+    import pickle
+    
+    try:
+        from openTSNE import TSNE
+        from openTSNE import TSNEEmbedding
+    except ImportError:
+        raise ImportError("\nPlease install openTSNE:\n\n\tpip install openTSNE")
+    if not (use_model is None) and not (save_path is None):
+        logger.warning("The model that will be saved is a `PartialTSNEEmbedding`")
+    if use_model is None:
+        tsne = TSNE(**kwargs)
+        if use_rep != "X":
+            model = tsne.fit(adata.obsm[use_rep])
+        elif use_raw:
+            model = tsne.fit(adata.raw.X)
+        else:
+            model = tsne.fit(adata.X)
+        adata.obsm[t_sne_slot] = np.array(model)
+    else:
+        if isinstance(use_model, str):
+            with open(use_model, "rb") as model_file:
+                model = pickle.load(model_file)
+        elif isinstance(use_model, TSNEEmbedding):
+            model = use_model
+        else:
+            raise Exception("`use_model` should be a path to the model or the model itself.")
+        if use_rep != "X":
+            model = model.transform(adata.obsm[use_rep])
+        elif use_raw:
+            model = model.transform(adata.raw.X)
+        else:
+            model = model.transform(adata.X)
+        adata.obsm[t_sne_slot] = np.array(model)
+    if save_path:
+        with open(save_path, "wb") as model_file:
+            pickle.dump(model, model_file, protocol=pickle.HIGHEST_PROTOCOL)
+            print(f"Model is saved in {save_path}")
