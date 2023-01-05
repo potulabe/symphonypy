@@ -20,7 +20,6 @@ def _harmony_integrate_R(
     basis: str = "X_pca",
     adjusted_basis: str = "X_pca_harmony",
     random_seed: int = 1,
-    clear_ram: bool = True,
     verbose: bool = False,
     **kwargs,
 ) -> None:
@@ -88,10 +87,6 @@ def _harmony_integrate_R(
             "converged": converged,
         }
         adata.obsm[adjusted_basis] = Z_corr
-
-    if clear_ram:
-        ro.r("rm(ho)")
-        ro.r("gc()")
 
     if not converged:
         logger.warning(
