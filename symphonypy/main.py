@@ -37,9 +37,11 @@ def run_symphony(
     search_highly_variable = (
         use_genes_column == "highly_variable" and "highly_variable" not in adata_ref.var
     )
-    
+
     if isinstance(batch_keys, str):
-        batch_keys = [batch_keys, ]
+        batch_keys = [
+            batch_keys,
+        ]
 
     # HVG, PCA
     adata_ref.obs["batch_symphonypy"] = (
@@ -82,6 +84,7 @@ def run_symphony(
         ref_basis_source=ref_basis_source,
         ref_basis_adjusted=basis_adjusted,
         ref_basis_loadings=ref_basis_loadings,
+        flavor="R",
         key=batch_keys,
         *harmony_args,  # TODO: test if it works
         **harmony_kwargs,

@@ -18,6 +18,7 @@ def harmony_integrate(
     ref_basis_adjusted: str = "X_pca_harmony",
     ref_basis_loadings: str = "PCs",
     verbose: bool = False,
+    random_seed: int = 1,
     **harmony_kwargs,
 ):
     """
@@ -46,6 +47,7 @@ def harmony_integrate(
             ref_basis_adjusted=ref_basis_adjusted,
             ref_basis_loadings=ref_basis_loadings,
             verbose=verbose,
+            random_state=random_seed,
             **harmony_kwargs,
         )
     elif flavor == "R":
@@ -58,6 +60,7 @@ def harmony_integrate(
             ref_basis_adjusted=ref_basis_adjusted,
             ref_basis_loadings=ref_basis_loadings,
             verbose=verbose,
+            random_seed=random_seed,
             **harmony_kwargs,
         )
     else:

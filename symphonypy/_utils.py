@@ -68,8 +68,8 @@ def _harmony_integrate_python(
 def _harmony_integrate_R(
     adata: AnnData,
     key: list[str] | str,
-    basis: str = "X_pca",
-    adjusted_basis: str = "X_pca_harmony",
+    ref_basis_source: str = "X_pca",
+    ref_basis_adjusted: str = "X_pca_harmony",
     ref_basis_loadings: str = "PCs",
     random_seed: int = 1,
     verbose: bool = False,
@@ -110,7 +110,7 @@ def _harmony_integrate_R(
         importr("base").set_seed(random_seed)
 
         ho = harmony.HarmonyMatrix(
-            adata.obsm[basis],
+            adata.obsm[ref_basis_source],
             adata.obs,
             key,
             do_pca=False,
@@ -134,10 +134,10 @@ def _harmony_integrate_R(
             "K": K[0],
             "sigma": sigma.squeeze(1),
             "ref_basis_loadings": ref_basis_loadings,
-            "ref_basis_adjusted": adjusted_basis,
+            "ref_basis_adjusted": ref_basis_adjusted,
             "converged": converged,
         }
-        adata.obsm[adjusted_basis] = Z_corr
+        adata.obsm[ref_basis_adjusted] = Z_corr
 
     if not converged:
         logger.warning(
