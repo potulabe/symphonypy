@@ -127,10 +127,14 @@ def _harmony_integrate_R(
         Y = dollar(ho, "Y")
         sigma = dollar(ho, "sigma")
 
+        # [K, d] = [K, Nref] x [d, N_ref].T
+        C = R @ Z_corr
+        Y = C / np.linalg.norm(C, ord=2, axis=1, keepdims=True)
+
         adata.uns["harmony"] = {
             "Nr": R.sum(axis=1),
-            "C": R @ Z_corr,
-            "Y": Y.T,
+            "C": C,
+            "Y": Y,
             "K": K[0],
             "sigma": sigma.squeeze(1),
             "ref_basis_loadings": ref_basis_loadings,
