@@ -13,7 +13,6 @@ def run_symphony(
     adata_query: AnnData,
     batch_keys: list[str] | str,
     n_comps: int,
-    harmony_args: list,
     harmony_kwargs: dict,
     lamb: float,
     labels: list[str],
@@ -64,9 +63,11 @@ def run_symphony(
             adata_ref, batch_key="batch_symphonypy", n_top_genes=n_top_genes
         )
 
-    sc.pp.scale(adata_ref, zero_center=True, max_value=10)
+    max_value = 10
+    sc.pp.scale(adata_ref, zero_center=True, max_value=max_value)
+    adata_ref.X[adata_ref.X < -max_value] = -max_value
 
-    sc.tl.pca(adata_ref, n_comps=n_comps)
+    sc.tl.pca(adata_ref, n_comps=n_comps, zero_center=False)
 
     ref_basis_source = "X_pca"
     basis_adjusted = "X_pca_harmony"
@@ -86,7 +87,6 @@ def run_symphony(
         ref_basis_loadings=ref_basis_loadings,
         flavor="R",
         key=batch_keys,
-        *harmony_args,  # TODO: test if it works
         **harmony_kwargs,
     )
 
@@ -130,25 +130,28 @@ if __name__ == "__main__":
 
     # adata_ref = sc.read("data/pancreas.h5ad")  # somehow normalized data
 
-    # adata_ref = sc.read("data/PBMC_Satija.h5ad")  # not normalized, with batch
-    # adata_query = adata_ref.copy()
+    adata_ref = sc.read("data/PBMC_Satija.h5ad")  # not normalized, with batch
+    adata_query = adata_ref.copy()
+    raw_counts = True
+    labels = [
+        "celltype.l1",
+    ]
 
-    adata = sc.read("data/exprs_norm_all.h5ad")
+    # adata = sc.read("data/exprs_norm_all.h5ad")
 
-    adata_query = adata[adata.obs.donor == "5'"].copy()
-    adata_query.obs["ref_query"] = "query"
+    # adata_query = adata[adata.obs.donor == "5'"].copy()
+    # adata_query.obs["ref_query"] = "query"
+    # adata_ref = adata[~(adata.obs.donor == "5'")].copy()
+    # adata_ref.obs["ref_query"] = "ref"
+    # raw_counts = False
+    # labels = ["cell_type", "cell_subtype"]
 
-    adata_ref = adata[~(adata.obs.donor == "5'")].copy()
-    adata_ref.obs["ref_query"] = "ref"
-
-    raw_counts = False
     n_comps = 20
     batch_keys = "donor"
     harmony_kwargs = {"sigma": 0.1}
     lamb = 1
     n_top_genes = 2000
     n_neighbours = 10
-    labels = ["cell_type", "cell_subtype"]
     use_genes_column = "highly_variable"
 
     run_symphony(
@@ -161,7 +164,6 @@ if __name__ == "__main__":
         n_neighbours=n_neighbours,
         raw_counts=raw_counts,
         n_top_genes=n_top_genes,
-        harmony_args=[],
         harmony_kwargs=harmony_kwargs,
         use_genes_column=use_genes_column,
     )

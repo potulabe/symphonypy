@@ -255,9 +255,8 @@ def _map_query_to_ref(
     )
     stds = stds[use_genes_list_present]
 
-    t[:, use_genes_list_present] = (
-        t[:, use_genes_list_present] - means[np.newaxis]
-    ) / stds[np.newaxis]
+    t[:, use_genes_list_present] -= means[np.newaxis]
+    t[:, use_genes_list_present] /= stds[np.newaxis]
 
     if max_value is not None:
         t = np.clip(t, -max_value, max_value)
