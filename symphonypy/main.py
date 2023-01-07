@@ -11,7 +11,7 @@ import symphonypy as sp
 def run_symphony(
     adata_ref: AnnData,
     adata_query: AnnData,
-    batch_keys: list[str],
+    batch_keys: list[str] | str,
     n_comps: int,
     harmony_args: list,
     harmony_kwargs: dict,
@@ -37,6 +37,10 @@ def run_symphony(
     search_highly_variable = (
         use_genes_column == "highly_variable" and "highly_variable" not in adata_ref.var
     )
+    
+    if isinstance(batch_keys, str):
+        batch_keys = [batch_keys, ]
+
     # HVG, PCA
     adata_ref.obs["batch_symphonypy"] = (
         (adata_ref.obs[batch_keys]).astype(str).agg("_".join, axis=1)
@@ -97,7 +101,6 @@ def run_symphony(
         adata_ref,
         adata_query,
         labels,
-        labels,
         # kNN args
         n_neighbours,
         ref_basis=basis_adjusted,
@@ -137,9 +140,7 @@ if __name__ == "__main__":
 
     raw_counts = False
     n_comps = 20
-    batch_keys = [
-        "donor",
-    ]
+    batch_keys = "donor"
     harmony_kwargs = {"sigma": 0.1}
     lamb = 1
     n_top_genes = 2000

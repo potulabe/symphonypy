@@ -6,12 +6,14 @@ import logging
 import numpy as np
 
 from anndata import AnnData
+from harmonypy import run_harmony
 
 logger = logging.getLogger("symphonypy")
 
 
 # TODO:
 # def _compute_confidence()
+
 
 def _harmony_integrate_python(
     adata: AnnData,
@@ -34,14 +36,18 @@ def _harmony_integrate_python(
 
     converged = ref_ho.check_convergence(1)
 
+    # [K, d] = [K, Nref] x [d, N_ref].T
+    C = ref_ho.R @ ref_ho.Z_corr.T
+    Y = C / np.linalg.norm(C, ord=2, axis=1, keepdims=True)
+
     adata.uns["harmony"] = {
         # [K] the number of cells softly belonging to each cluster
         "Nr": ref_ho.R.sum(axis=1),
-        # [K, d] = [K, Nref] x [d, N_ref].T
-        "C": ref_ho.R @ ref_ho.Z_corr.T,
+        # [K, d]
+        "C": C,
         # ref cluster centroids L2 normalized
-        # [K, d] = [d, K].T
-        "Y": ref_ho.Y.T,
+        # [K, d]
+        "Y": Y,
         # number of clusters
         "K": ref_ho.K,
         # sigma [K] (cluster cross enthropy regularization coef)
@@ -49,7 +55,6 @@ def _harmony_integrate_python(
         "ref_basis_loadings": ref_basis_loadings,
         "ref_basis_adjusted": ref_basis_adjusted,
         "vars_use": key,
-        "harmony_args": harmony_args,
         "harmony_kwargs": harmony_kwargs,
         "converged": converged,
     }
@@ -58,7 +63,7 @@ def _harmony_integrate_python(
         logger.warning(
             "Harmony didn't converge. Consider increasing max_iter_harmony parameter value"
         )
-    
+
 
 def _harmony_integrate_R(
     adata: AnnData,
@@ -80,8 +85,8 @@ def _harmony_integrate_R(
         raise Exception("R installation is necessary.")
     try:
         from rpy2.robjects.packages import importr
-    except ImportError:
-        raise ImportError("\nPlease install rpy2:\n\n\tpip install rpy2")
+    except ImportError as e:
+        raise ImportError("\nPlease install rpy2:\n\n\tpip install rpy2") from e
     try:
         harmony = importr("harmony")
     except Exception as e:
@@ -90,7 +95,6 @@ def _harmony_integrate_R(
             "Please install it from https://github.com/immunogenomics/harmony and try again"
         ) from e
 
-    import rpy2.robjects as ro
     from rpy2.robjects import numpy2ri, pandas2ri, default_converter
     from rpy2.robjects.conversion import localconverter
     import rpy2.rinterface_lib.callbacks
@@ -157,7 +161,7 @@ def _assign_clusters(X: np.array, sigma: np.array, Y: np.array) -> np.array:
     X_cos /= np.linalg.norm(X_cos, ord=2, axis=1, keepdims=True)
 
     # [K, N] = [K, d] x [Nq, d].T
-    R = -2 * (1 - np.dot(Y, X_cos.T)) / sigma[..., np.newaxis]
+    R = -2 * (1 - Y @ X_cos.T) / sigma[..., np.newaxis]
     R = np.exp(R)
     R /= R.sum(axis=0, keepdims=True)
 
@@ -168,33 +172,34 @@ def _correct_query(
     X: np.array,
     phi_: np.array,
     R: np.array,
-    K: int,
     Nr: np.array,
     C: np.array,
     lamb: np.array,
 ):
     # [d, N] = [N, d].T
     X_corr = X.copy().T
+    lamb[0, 0] = 0
+    K = R.shape[0]
 
     for i in range(K):
         # [B + 1, N] = [B + 1, N] * [N]
         Phi_Rk = np.multiply(phi_, R[i, :])
 
         # [B + 1, B + 1] = [B + 1, N] x [N, B + 1]
-        x = np.dot(Phi_Rk, phi_.T)
+        x = Phi_Rk @ phi_.T
         # += [1]
         x[0, 0] += Nr[i]
 
         # [B + 1, d] = [B + 1, N] x [N, d]
-        y = np.dot(Phi_Rk, X)
+        y = Phi_Rk @ X
         y[0, :] += C[i]
 
         # [B + 1, d] = [B + 1, B + 1] x [B + 1, d]
-        W = np.dot(np.linalg.inv(x + lamb), y)
+        W = np.linalg.inv(x + lamb) @ y
         W[0, :] = 0  # do not remove the intercept
 
         # [d, N] -= [B + 1, d].T x [B + 1, N]
-        X_corr -= np.dot(W.T, Phi_Rk)
+        X_corr -= W.T @ Phi_Rk
 
     return X_corr.T
 
@@ -216,17 +221,19 @@ def _map_query_to_ref(
 
     use_genes_list = np.array(adata_ref.var_names[adata_ref.var[use_genes_column]])
 
+    # [N_genes]
     stds = np.array(adata_ref.var["std"][adata_ref.var[use_genes_column]])
-    means = np.array(adata_ref.var["mean"][adata_ref.var[use_genes_column]])[stds != 0]
 
-    use_genes_list_present = np.isin(use_genes_list, adata_query.var_names)
+    use_genes_list_present = np.isin(use_genes_list, adata_query.var_names) & (
+        stds != 0
+    )
 
     # Adjusting for missing genes.
     if not all(use_genes_list_present):
         logger.warning(
             "%i out of %i "
-            "genes from reference are missing in query dataset, "
-            "their expressions will be set to zero ",
+            "genes from reference are missing in query dataset or have zero std in reference,"
+            "their expressions in query will be set to zero",
             (~use_genes_list_present).sum(),
             use_genes_list.shape[0],
         )
@@ -236,18 +243,20 @@ def _map_query_to_ref(
         t[:, use_genes_list_present] = adata_query[
             :, use_genes_list[use_genes_list_present]
         ].X.A
-        t = t[:, stds != 0]
-
     else:
-        t = adata_query[:, use_genes_list].X[:, stds != 0].copy()
+        t = adata_query[:, use_genes_list].X.copy()
 
-    stds = stds[stds != 0]
+    means = np.array(
+        adata_ref.var["mean"][adata_ref.var[use_genes_column]][use_genes_list_present]
+    )
+    stds = stds[use_genes_list_present]
 
-    t = (t - means[np.newaxis]) / stds[np.newaxis]
-    t = np.clip(t, None, max_value)
+    t[:, use_genes_list_present] = (
+        t[:, use_genes_list_present] - means[np.newaxis]
+    ) / stds[np.newaxis]
 
-    # set zero expression to missing genes after scaling
-    t[:, ~use_genes_list_present] = 0
+    if max_value is not None:
+        t = np.clip(t, -max_value, max_value)
 
     # map query to reference's PCA coords
     # [cells, n_comps] = [cells, genes] * [genes, n_comps]

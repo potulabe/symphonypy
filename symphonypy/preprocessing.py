@@ -3,9 +3,7 @@ from __future__ import annotations
 
 import logging
 
-import numpy as np
 from anndata import AnnData
-from harmonypy import run_harmony
 from ._utils import _harmony_integrate_python, _harmony_integrate_R
 
 
@@ -37,7 +35,7 @@ def harmony_integrate(
         key (list[str] | str): which columns from adata.obs
             to use as batch keys (`vars_use` parameter of Harmony)
     """
-    
+
     if flavor == "python":
         if verbose:
             print("Harmony integration with harmonypy is preforming.")

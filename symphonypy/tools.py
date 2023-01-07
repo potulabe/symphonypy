@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 import numpy as np
 import pandas as pd
-import scanpy as sc
-import warnings
 
 from sklearn.neighbors import KNeighborsClassifier
 from anndata import AnnData
@@ -22,6 +21,7 @@ def map_embedding(
     adata_query: AnnData,
     key: list[str] | str | None = None,
     lamb: float | np.array | None = None,
+    sigma: float | np.array = 0.1,
     use_genes_column: str = "highly_variable",
     adjusted_basis_query: str = "X_pca_harmony",
     query_basis_ref: str = "X_pca_reference",
@@ -67,16 +67,26 @@ def map_embedding(
     # 2. assign clusters
     # [Nq, d]
     X = adata_query.obsm[query_basis_ref]
-    R = _assign_clusters(X, harmony_ref["sigma"], harmony_ref["Y"])
+
+    if isinstance(sigma, (int, float)):
+        sigma = np.array([sigma], dtype=np.float32)
+    else:
+        sigma = np.array(sigma, dtype=np.float32)
+        assert (
+            len(sigma) == harmony_ref["K"]
+        ), "sigma paramater must be either a single float or an array of length equal to number of clusters"
+
+    R = _assign_clusters(X, sigma, harmony_ref["Y"])
 
     # 3. correct query embeddings
     # likewise harmonypy
     if key is None:
         batch_data = pd.DataFrame({"batch": ["1"] * len(adata_query)})
-    elif type(key) == str:
+    elif isinstance(key, str):
         batch_data = pd.DataFrame(adata_query.obs[key]).astype(str)
     else:
         batch_data = adata_query.obs[key].astype(str)
+
     # [B, N] = [N, B].T  (B -- batch num)
     phi = pd.get_dummies(batch_data).to_numpy().T
     # [B + 1, N]
@@ -97,7 +107,7 @@ def map_embedding(
     lamb = np.diag(np.insert(lamb, 0, 0))
 
     adata_query.obsm[adjusted_basis_query] = _correct_query(
-        X, phi_, R, harmony_ref["K"], harmony_ref["Nr"], harmony_ref["C"], lamb
+        X, phi_, R, harmony_ref["Nr"], harmony_ref["C"], lamb
     )
 
 
@@ -105,8 +115,8 @@ def transfer_labels_kNN(
     adata_ref: AnnData,
     adata_query: AnnData,
     ref_labels: list[str] | str,
-    query_labels: list[str] | None = None,
     *kNN_args,
+    query_labels: list[str] | str | None = None,
     ref_basis: str = "X_pca_harmony",
     query_basis: str = "X_pca_harmony",
     **kNN_kwargs,
@@ -126,20 +136,23 @@ def transfer_labels_kNN(
 
     knn.fit(adata_ref.obsm[ref_basis], adata_ref.obs[ref_labels])
 
+    if query_labels is None:
+        query_labels = ref_labels
+
     # TODO: predict_proba
     adata_query.obs[query_labels] = knn.predict(adata_query.obsm[query_basis])
 
-    
+
 def tsne(
     adata: AnnData,
     use_rep: str = "X_pca",
     t_sne_slot: str = "X_tsne",
-    use_model: "TSNEEmbedding" | str | None = None,
+    use_model: "openTSNE.TSNEEmbedding" | str | None = None,
     save_path: str | None = None,
     use_raw: bool | None = None,
     return_model: bool = False,
     **kwargs,
-) -> None | "TSNEEmbedding":
+) -> None | "openTSNE.TSNEEmbedding":
     """
     Args:
         adata (AnnData): _description_
@@ -152,33 +165,42 @@ def tsne(
         **kwargs: _description_
     """
     import pickle
-    
+
     try:
         from openTSNE import TSNE
         from openTSNE import TSNEEmbedding
-    except ImportError:
-        raise ImportError("\nPlease install openTSNE:\n\n\tpip install openTSNE")
-        
+    except ImportError as exc:
+        raise ImportError(
+            "\nPlease install openTSNE:\n\n\tpip install openTSNE"
+        ) from exc
+
     if not (use_model is None) and not (save_path is None):
         logger.warning("The model that will be saved is a `PartialTSNEEmbedding`")
-        
+
     if use_model is None:
-        tsne = TSNE(**kwargs)
+
+        tsne_obj = TSNE(**kwargs)
+
         if use_rep != "X":
-            model = tsne.fit(adata.obsm[use_rep])
+            model = tsne_obj.fit(adata.obsm[use_rep])
         elif use_raw:
-            model = tsne.fit(adata.raw.X)
+            model = tsne_obj.fit(adata.raw.X)
         else:
-            model = tsne.fit(adata.X)
+            model = tsne_obj.fit(adata.X)
+
         adata.obsm[t_sne_slot] = np.array(model)
     else:
+
         if isinstance(use_model, str):
             with open(use_model, "rb") as model_file:
                 model = pickle.load(model_file)
         elif isinstance(use_model, TSNEEmbedding):
             model = use_model
         else:
-            raise Exception("`use_model` should be a path to the model or the model itself.")
+            raise Exception(
+                "`use_model` should be a path to the model or the model itself."
+            )
+
         if use_rep != "X":
             model = model.transform(adata.obsm[use_rep])
         elif use_raw:
@@ -186,9 +208,11 @@ def tsne(
         else:
             model = model.transform(adata.X)
         adata.obsm[t_sne_slot] = np.array(model)
+
     if save_path:
         with open(save_path, "wb") as model_file:
             pickle.dump(model, model_file, protocol=pickle.HIGHEST_PROTOCOL)
             print(f"Model is saved in {save_path}")
+
     if return_model:
         return model
