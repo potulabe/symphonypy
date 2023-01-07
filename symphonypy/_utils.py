@@ -244,7 +244,7 @@ def _map_query_to_ref(
             :, use_genes_list[use_genes_list_present]
         ].X.A
     else:
-        t = adata_query[:, use_genes_list].X.copy()
+        t = adata_query[:, use_genes_list].X.A
 
     means = np.array(
         adata_ref.var["mean"][adata_ref.var[use_genes_column]][use_genes_list_present]
