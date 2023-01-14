@@ -24,7 +24,7 @@ def harmony_integrate(
     """
     Run Harmony batch correction on adata,
     save corrected output to adata.obsm,
-    save all necessary to Symphony mapping
+    save all the necessary to Symphony mapping
         algorithm parameters to adata.uns
 
     Args:
@@ -53,6 +53,7 @@ def harmony_integrate(
     elif flavor == "R":
         if verbose:
             print("Harmony integration with R Harmony is preforming.")
+
         _harmony_integrate_R(
             adata=adata,
             key=key,
