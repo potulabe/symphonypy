@@ -1,28 +1,31 @@
 <!-- omit in toc -->
 # Symphonypy
-Porting of [Symphony](https://github.com/immunogenomics/symphony) R package to Python
+Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to Python
 
 - [Usage](#usage)
   - [Preprocessing](#preprocessing)
-  - [Symphony](#symphony)
+  - [Run symphony](#run-symphony)
   - [Transfer labels](#transfer-labels)
   - [Map UMAP](#map-umap)
   - [Map Open tSNE](#map-open-tsne)
 - [Benchmarking](#benchmarking)
 
 > Currently under development:
-> - confidence metrics
+> - evaluation of confidence metrics
 > - building reference without running Harmony
-> - Symphony R via rpy2
-> - precomputed references
+> - Symphony R via rpy2 envelop
+> - precomputed symphony reference datasets
 
   
 ## Usage
 ### Preprocessing
-```
+```python
+import scanpy as sc
+import symphonypy as sp
+
+
 n_comps = 20
 batch_key = "donor"
-lamb = 1
 n_top_genes = 2000
 n_neighbours = 10
 
@@ -48,9 +51,10 @@ sc.tl.pca(adata_ref, n_comps=n_comps, zero_center=False)
 sc.pp.normalize_total(adata_query, target_sum=1e5)
 sc.pp.log1p(adata_query)
 ```
-### Symphony
-```
+### Run symphony
+```python
 harmony_kwargs = {"sigma": 0.1}
+lamb = 1
 
 
 # run Harmonypy or Harmony R on the reference:
@@ -59,7 +63,7 @@ sp.pp.harmony_integrate(
     ref_basis_source="X_pca",
     ref_basis_adjusted="X_pca_harmony",
     ref_basis_loadings="PCs",
-    flavor="python",  # can be "R"
+    flavor="python",  # could be "R" (will run Harmony via rpy2)
     key=batch_keys,
     **harmony_kwargs,
 )
@@ -68,7 +72,7 @@ sp.pp.harmony_integrate(
 sp.tl.map_embedding(
     adata_ref,
     adata_query,
-    key=batch_key,  # can be list of batch keys
+    key=batch_key,  # could be list of batch keys
     lamb=lamb,
     use_genes_column="highly_variable",
     adjusted_basis_query="X_pca_harmony",
@@ -76,8 +80,8 @@ sp.tl.map_embedding(
 )
 ```
 ### Transfer labels
-```
-labels = ["cell_type", "cell_subtype"]
+```python
+labels = ["cell_type", "cell_subtype"]  # any columns from adata_ref.obs
 
 
 # transfer labels via scipy kNN
@@ -94,7 +98,7 @@ sp.tl.transfer_labels_kNN(
 )
 ```
 ### Map UMAP
-```
+```python
 # map query to the reference's UMAP
 # build reference UMAP
 sc.pp.neighbors(
@@ -105,11 +109,11 @@ sc.pp.neighbors(
     use_rep="X_pca_harmony"
 )
 sc.tl.umap(adata_ref)
-# run ingest (same as sc.tl.ingest, but with adjusting for missing genes in query)
+# run ingest (same as sc.tl.ingest, but with setting to zero expressions of var_names missed in query)
 sp.tl.ingest(adata=adata_query, adata_ref=adata_ref, embedding_method="umap")
 ```
 ### Map Open tSNE
-```
+```python
 # map query to the reference's tSNE
 tSNE = sc.tl.tsne(adata_ref, use_rep="X_pca_harmony", return_model=True)
 sc.tl.tsne(adata_query, use_model=tSNE)
