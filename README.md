@@ -3,6 +3,11 @@
 Porting of [Symphony](https://github.com/immunogenomics/symphony) R package to Python
 
 - [Usage](#usage)
+  - [Preprocessing](#preprocessing)
+  - [Symphony](#symphony)
+  - [Transfer labels](#transfer-labels)
+  - [Map UMAP](#map-umap)
+  - [Map Open tSNE](#map-open-tsne)
 - [Benchmarking](#benchmarking)
 - [Harmony R with rpy2](#harmony-r-with-rpy2)
 
@@ -14,16 +19,14 @@ Porting of [Symphony](https://github.com/immunogenomics/symphony) R package to P
 
   
 ## Usage
+### Preprocessing
 ```
-
 n_comps = 20
 batch_key = "donor"
-harmony_kwargs = {"sigma": 0.1}
 lamb = 1
 n_top_genes = 2000
 n_neighbours = 10
-use_genes_column = "highly_variable"
-labels = ["cell_type", "cell_subtype"]
+
 
 # preprocess reference, e.g. HVG, normalize, log1p:
 sc.pp.highly_variable_genes(
@@ -47,6 +50,12 @@ sc.pp.normalize_total(adata_query, target_sum=1e5)
 sc.pp.log1p(adata_query)
 
 
+```
+### Symphony
+```
+harmony_kwargs = {"sigma": 0.1}
+
+
 # run Harmonypy or Harmony R on the reference:
 sp.pp.harmony_integrate(
     adata_ref,
@@ -58,7 +67,6 @@ sp.pp.harmony_integrate(
     **harmony_kwargs,
 )
 
-
 # run symphonypy to map query to the reference's embedding:
 sp.tl.map_embedding(
     adata_ref,
@@ -69,6 +77,10 @@ sp.tl.map_embedding(
     adjusted_basis_query="X_pca_harmony",
     query_basis_ref="X_pca_reference",
 )
+```
+### Transfer labels
+```
+labels = ["cell_type", "cell_subtype"]
 
 
 # transfer labels via scipy kNN
@@ -84,13 +96,15 @@ sp.tl.transfer_labels_kNN(
     weights="distance",
 )
 
-
+```
+### Map UMAP
+```
 # map query to the reference's UMAP
 # build reference UMAP
 sc.pp.neighbors(
     adata_ref,
     n_pcs=n_comps,
-    n_neighbors=20,
+    n_neighbors=n_neighbours,
     knn=True,
     use_rep="X_pca_harmony"
 )
@@ -98,7 +112,9 @@ sc.tl.umap(adata_ref)
 # run ingest (same as sc.tl.ingest, but with adjusting for missing genes in query)
 sp.tl.ingest(adata=adata_query, adata_ref=adata_ref, embedding_method="umap")
 
-
+```
+### Map Open tSNE
+```
 # map query to the reference's tSNE
 tSNE = sc.tl.tsne(adata_ref, use_rep="X_pca_harmony", return_model=True)
 sc.tl.tsne(adata_query, use_model=tSNE)
