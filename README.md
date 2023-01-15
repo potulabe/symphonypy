@@ -113,7 +113,7 @@ sc.tl.umap(adata_ref)
 # run ingest (same as sc.tl.ingest, but with setting to zero expressions of var_names missed in query)
 sp.tl.ingest(adata=adata_query, adata_ref=adata_ref, embedding_method="umap")
 ```
-### Map Open tSNE
+### Map tSNE with `openTSNE`
 ```python
 # map query to the reference's tSNE
 tSNE = sc.tl.tsne(adata_ref, use_rep="X_pca_harmony", return_model=True)
