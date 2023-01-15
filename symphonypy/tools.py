@@ -271,24 +271,14 @@ def transfer_labels_kNN(
 def tsne(
     adata: AnnData,
     use_rep: str = "X_pca",
-    t_sne_slot: str = "X_tsne",
+    # t_sne_slot: str = "X_tsne",
     use_model: "openTSNE.TSNEEmbedding" | str | None = None,
     save_path: str | None = None,
     use_raw: bool | None = None,
     return_model: bool = False,
     **kwargs,
 ) -> None | "openTSNE.TSNEEmbedding":
-    """
-    Args:
-        adata (AnnData): _description_
-        use_rep (str): _description_
-        t_sne_slot (str): _description_
-        use_model (str | None | TSNEEmbedding): _description_
-        save_path (str | None): _description_
-        use_raw (bool | None): _description_
-        return_model (bool): _description_
-        **kwargs: _description_
-    """
+
     import pickle
 
     try:
@@ -313,7 +303,7 @@ def tsne(
         else:
             model = tsne_obj.fit(adata.X)
 
-        adata.obsm[t_sne_slot] = np.array(model)
+        # adata.obsm[t_sne_slot] = np.array(model)
     else:
 
         if isinstance(use_model, str):
@@ -332,7 +322,7 @@ def tsne(
             model = model.transform(adata.raw.X)
         else:
             model = model.transform(adata.X)
-        adata.obsm[t_sne_slot] = np.array(model)
+        # adata.obsm[t_sne_slot] = np.array(model)
 
     if save_path:
         with open(save_path, "wb") as model_file:
