@@ -32,13 +32,14 @@ n_neighbours = 10
 
 # preprocess reference, e.g. HVG, normalize, log1p:
 sc.pp.highly_variable_genes(
-                adata_ref,
-                batch_key=batch_key,
-                n_top_genes=n_top_genes,
-                flavor="seurat_v3",
-            )
+    adata_ref,
+    batch_key=batch_key,
+    n_top_genes=n_top_genes,
+    flavor="seurat_v3",
+)
 sc.pp.normalize_total(adata_ref, target_sum=1e5)
 sc.pp.log1p(adata_ref)
+adata.raw = adata
 
 
 # create reference embedding, e.g. PCA:
