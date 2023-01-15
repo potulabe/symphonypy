@@ -64,7 +64,7 @@ sp.pp.harmony_integrate(
     ref_basis_source="X_pca",
     ref_basis_adjusted="X_pca_harmony",
     ref_basis_loadings="PCs",
-    flavor="python",  # could be "R" (will run Harmony via rpy2)
+    flavor="python",  # might be "R" (will run Harmony via rpy2)
     key=batch_keys,
     **harmony_kwargs,
 )
