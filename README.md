@@ -47,8 +47,6 @@ sc.tl.pca(adata_ref, n_comps=n_comps, zero_center=False)
 # preprocess query in the same way as reference:
 sc.pp.normalize_total(adata_query, target_sum=1e5)
 sc.pp.log1p(adata_query)
-
-
 ```
 ### Symphony
 ```
@@ -94,7 +92,6 @@ sp.tl.transfer_labels_kNN(
     # kNN kwargs
     weights="distance",
 )
-
 ```
 ### Map UMAP
 ```
@@ -110,7 +107,6 @@ sc.pp.neighbors(
 sc.tl.umap(adata_ref)
 # run ingest (same as sc.tl.ingest, but with adjusting for missing genes in query)
 sp.tl.ingest(adata=adata_query, adata_ref=adata_ref, embedding_method="umap")
-
 ```
 ### Map Open tSNE
 ```
