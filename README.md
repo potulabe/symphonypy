@@ -44,7 +44,7 @@ adata.raw = adata
 
 # create reference embedding, e.g. PCA:
 sc.pp.scale(adata_ref, zero_center=True, max_value=10)
-adata_ref.X[adata_ref.X < -10] = -10
+adata_ref.X[adata_ref.X < -10] = -10 # for R Symphony-like processing
 sc.tl.pca(adata_ref, n_comps=n_comps, zero_center=False)
 
 
