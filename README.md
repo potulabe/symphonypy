@@ -12,9 +12,8 @@ Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to P
 
 > Currently under development:
 > - evaluation of confidence metrics
-> - building reference without running Harmony
-> - Symphony R via rpy2 envelop
 > - precomputed symphony reference datasets
+> - Python package
 
   
 ## Usage
@@ -27,7 +26,6 @@ import symphonypy as sp
 n_comps = 20
 batch_key = "donor"
 n_top_genes = 2000
-n_neighbours = 10
 
 
 # preprocess reference, e.g. HVG, normalize, log1p:
@@ -42,15 +40,15 @@ sc.pp.log1p(adata_ref)
 adata.raw = adata
 
 
-# create reference embedding, e.g. PCA:
-sc.pp.scale(adata_ref, zero_center=True, max_value=10)
-adata_ref.X[adata_ref.X < -10] = -10 # for R Symphony-like processing
-sc.tl.pca(adata_ref, n_comps=n_comps, zero_center=False)
-
-
 # preprocess query in the same way as reference:
 sc.pp.normalize_total(adata_query, target_sum=1e5)
 sc.pp.log1p(adata_query)
+
+
+# create reference embedding, e.g. PCA:
+sc.pp.scale(adata_ref, zero_center=True, max_value=10)
+adata_ref.X[adata_ref.X < -10] = -10 # for R Symphony-like preprocessing
+sc.tl.pca(adata_ref, n_comps=n_comps, zero_center=False)  # do not center again
 ```
 ### Run symphony
 ```python
@@ -58,7 +56,10 @@ harmony_kwargs = {"sigma": 0.1}
 lamb = 1
 
 
-# run Harmonypy or Harmony R on the reference:
+# run Harmonypy or Harmony R,
+# if you want to integrate the reference dataset
+# (skip this, if there is no necessity 
+# of batch correction in the reference):
 sp.pp.harmony_integrate(
     adata_ref,
     ref_basis_source="X_pca",
@@ -68,6 +69,9 @@ sp.pp.harmony_integrate(
     key=batch_keys,
     **harmony_kwargs,
 )
+# -> adata_ref.obsm["X_pca_harmony"]
+# -> adata_ref.uns["harmony"] (needed for the next step)
+
 
 # run symphonypy to map query to the reference's embedding:
 sp.tl.map_embedding(
@@ -79,11 +83,13 @@ sp.tl.map_embedding(
     adjusted_basis_query="X_pca_harmony",
     query_basis_ref="X_pca_reference",
 )
+# -> adata_query.obsm["X_pca_harmony"]
 ```
 ### Transfer labels
 ```python
+n_neighbours = 10
 labels = ["cell_type", "cell_subtype"]  # any columns from adata_ref.obs
-
+transferred_labels = ["predicted_cell_type", "predicted_cell_subtype"]
 
 # transfer labels via scipy kNN
 sp.tl.transfer_labels_kNN(
@@ -92,11 +98,13 @@ sp.tl.transfer_labels_kNN(
     labels,
     # kNN args
     n_neighbours,
+    query_labels=transferred_labels,
     ref_basis="X_pca_harmony",
     query_basis="X_pca_harmony",
     # kNN kwargs
     weights="distance",
 )
+# -> adata_query.obs[:, transferred_labels]
 ```
 ### Map UMAP
 ```python
@@ -112,12 +120,14 @@ sc.pp.neighbors(
 sc.tl.umap(adata_ref)
 # run ingest (same as sc.tl.ingest, but with setting to zero expressions of var_names missed in query)
 sp.tl.ingest(adata=adata_query, adata_ref=adata_ref, embedding_method="umap")
+# -> adata_query.obsm["X_umap"]
 ```
 ### Map tSNE with `openTSNE`
 ```python
 # map query to the reference's tSNE
 tSNE = sc.tl.tsne(adata_ref, use_rep="X_pca_harmony", return_model=True)
 sc.tl.tsne(adata_query, use_model=tSNE)
+# -> adata_query.obsm["X_tsne"]
 ```
 
 ## Benchmarking
