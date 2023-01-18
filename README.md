@@ -7,7 +7,7 @@ Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to P
   - [Run symphony](#run-symphony)
   - [Transfer labels](#transfer-labels)
   - [Map UMAP](#map-umap)
-  - [Map Open tSNE](#map-open-tsne)
+  - [Map tSNE with `openTSNE`](#map-tsne-with-opentsne)
 - [Benchmarking](#benchmarking)
 
 > Currently under development:
@@ -121,7 +121,9 @@ sc.tl.tsne(adata_query, use_model=tSNE)
 ```
 
 ## Benchmarking
-- Harmony (R) vs harmonypy benchmarking: [benchmarking/Benchmarking_harmony.ipynb](benchmarking/Benchmarking_harmony.ipynb)
+- Harmony (R) vs harmonypy benchmarking:
+  - [benchmarking/Benchmarking_harmony_PBMC_Satija.ipynb](benchmarking/Benchmarking_harmony_PBMC_Satija.ipynb)
+  - [benchmarking/Benchmarking_harmony_PBMC_Satija_CITEseq.ipynb](benchmarking/Benchmarking_harmony_PBMC_Satija_CITEseq.ipynb)
 - Symphony (R) vs symphonypy benchmarking: [benchmarking/Benchmarking_symphony.ipynb](benchmarking/Benchmarking_symphony.ipynb)
 - PBMC example from the Symphony repo: [benchmarking/validation_PBMC_example.ipynb](benchmarking/validation_PBMC_example.ipynb)
 

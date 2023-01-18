@@ -22,6 +22,7 @@ from ._utils import (
     _correct_query,
     _map_query_to_ref,
     _adjust_for_missing_genes,
+    _run_soft_kmeans,
 )
 
 
@@ -155,8 +156,40 @@ def map_embedding(
     use_genes_column: str | None = "highly_variable",
     adjusted_basis_query: str = "X_pca_harmony",
     query_basis_ref: str = "X_pca_reference",
+    ref_basis_loadings: str = "PCs",
+    K: int | None = None,
 ) -> None:
+    """
+    Actually runs Symphony algorithm for mapping adata_query to adata_ref.
+    Will use Harmony object from adata_ref.uns if present,
+    otherwise will firstly run k-means clusterization Harmony step
+    without batch correction.
 
+    Adds mapping of query cells to reference coords
+    to adata_query.obsm[query_basis_ref] and
+    symphony-corrected coords to adata_query.obsm[adjusted_basis_query].
+
+    Args:
+        adata_ref (AnnData): reference adata,
+            to account for batch effect in reference
+            first run harmony_integrate
+        adata_query (AnnData): query adata
+        key (list[str] | str | None, optional): which of the columns
+            from adata_query.obs to consider as batch keys.
+            Defaults to None.
+        lamb (float | np.array | None, optional): Entropy regularization parameter for soft k-means. Defaults to None.
+        sigma (float | np.array, optional): Ridge regularization parameter for the linear model. Defaults to 0.1.
+        use_genes_column (str | None, optional): adata_ref.var[use_genes_column] genes will
+            be used to map query embeddings to reference. Defaults to "highly_variable".
+        adjusted_basis_query (str, optional): in adata_query.obsm[adjusted_basis_query]
+            symphony-adjusted coords will be saved. Defaults to "X_pca_harmony".
+        query_basis_ref (str, optional): in adata_query.obsm[query_basis_ref]
+            adata_query mapping to reference coords will be saved. Defaults to "X_pca_reference".
+        ref_basis_loadings (str, optional): adata_ref.varm[ref_basis_loadings] will be used
+            as gene loadings to map adata_query to adata_ref coords. Defaults to "PCs".
+        K (int | None, optional): Number of clusters to use for k-means clustering.
+            Only used if harmony integration was not performed on adata_ref. Defaults to None.
+    """
     # Errors
     assert (
         "mean" in adata_ref.var
@@ -164,9 +197,21 @@ def map_embedding(
     assert (
         "std" in adata_ref.var
     ), "Gene expression stds are expected to be saved in adata_ref.var"
-    assert (
-        "harmony" in adata_ref.uns
-    ), "Firstly run symphonypy.pp.harmony_integrate on adata_ref"
+
+    if "harmony" not in adata_ref.uns:
+        warnings.warn(
+            "Not found `harmony` object in adata_ref.uns. "
+            "Assuming that adata_ref doesn't have any batches. "
+            "Otherwise, firstly run symphonypy.pp.harmony_integrate "
+            "on adata_ref to account for them."
+        )
+        _run_soft_kmeans(
+            adata_ref,
+            ref_basis=adjusted_basis_query,
+            ref_basis_loadings=ref_basis_loadings,
+            K=K,
+            sigma=sigma
+        )
 
     if use_genes_column is not None:
         assert (

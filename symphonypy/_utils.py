@@ -8,6 +8,7 @@ import numpy as np
 from anndata import AnnData
 from harmonypy import run_harmony
 from scipy.sparse import issparse
+from sklearn.cluster import KMeans
 
 logger = logging.getLogger("symphonypy")
 
@@ -62,7 +63,8 @@ def _harmony_integrate_python(
 
     if not converged:
         logger.warning(
-            "Harmony didn't converge. Consider increasing max_iter_harmony parameter value"
+            "Harmony didn't converge. "
+            "Consider increasing max_iter_harmony parameter value"
         )
 
 
@@ -151,14 +153,6 @@ def _harmony_integrate_R(
 
 
 def _assign_clusters(X: np.array, sigma: np.array, Y: np.array) -> np.array:
-    """_summary_
-    Args:
-        X (np.array): _description_
-        sigma (np.array): _description_
-        Y (np.array): _description_
-    Returns:
-        np.array: _description_
-    """
     # it's made so in harmonypy,
     # maybe to prevent overflow during L2 normalization?
     X_cos = X / X.max(axis=1, keepdims=True)
@@ -303,3 +297,53 @@ def _map_query_to_ref(
     adata_query.obsm[query_basis_ref] = np.array(
         t @ adata_ref.varm[ref_basis_loadings][adata_ref.var_names.isin(use_genes_list)]
     )
+
+
+def _run_soft_kmeans(
+    adata_ref: AnnData,
+    ref_basis: str = "X_pca",
+    K: int | None = None,
+    ref_basis_loadings: str = "PCs",
+    sigma: float = 0.1
+):
+    N = adata_ref.shape[0]
+
+    if K is None:
+        K = np.min([np.round(N / 30.0), 100]).astype(int)
+
+    model = KMeans(n_clusters=K, init="k-means++", n_init=10, max_iter=25)
+    model.fit(adata_ref.obsm[ref_basis])
+    Y = model.cluster_centers_
+    
+    Z_cos = adata_ref.obsm[ref_basis]
+    Z_cos /= Z_cos.max(axis=1, keepdims=True)
+    Z_cos /= np.linalg.norm(Z_cos, ord=2, axis=1, keepdims=True)
+
+    # (1) Normalize
+    Y /= np.linalg.norm(Y, ord=2, axis=1)
+    # (2) Assign cluster probabilities
+    R = -2 * (1 - np.dot(Y, Z_cos)) / sigma[..., np.newaxis]
+    R -= np.max(R, axis = 0)  # maybe for numerical stability
+    R = np.exp(R)
+    R /= np.sum(R, axis=0, keepdims=True)
+
+    C = R @ Z_cos
+
+    adata_ref.uns["harmony"] = {
+        # [K] the number of cells softly belonging to each cluster
+        "Nr": R.sum(axis=1),
+        # [K, d]
+        "C": C,
+        # ref cluster centroids L2 normalized
+        # [K, d]
+        "Y": Y,
+        # number of clusters
+        "K": K,
+        # sigma [K] (cluster cross enthropy regularization coef)
+        "sigma": None,
+        "ref_basis_loadings": ref_basis_loadings,
+        "ref_basis_adjusted": ref_basis,
+        "vars_use": None,
+        "harmony_kwargs": {},
+        "converged": True,
+    }
