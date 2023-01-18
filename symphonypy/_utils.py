@@ -152,7 +152,18 @@ def _harmony_integrate_R(
         )
 
 
-def _assign_clusters(X: np.array, sigma: np.array, Y: np.array) -> np.array:
+def _assign_clusters(
+    X: np.array, sigma: float | np.array, Y: np.array, K: int
+) -> np.array:
+
+    if isinstance(sigma, (int, float)):
+        sigma = np.array([sigma], dtype=np.float32)
+    else:
+        sigma = np.array(sigma, dtype=np.float32)
+        assert (
+            len(sigma) == K
+        ), "sigma paramater must be either a single float or an array of length equal to number of clusters"
+
     # it's made so in harmonypy,
     # maybe to prevent overflow during L2 normalization?
     X_cos = X / X.max(axis=1, keepdims=True)
@@ -161,6 +172,7 @@ def _assign_clusters(X: np.array, sigma: np.array, Y: np.array) -> np.array:
 
     # [K, N] = [K, d] x [Nq, d].T
     R = -2 * (1 - Y @ X_cos.T) / sigma[..., np.newaxis]
+    R -= np.max(R, axis=0)  # maybe for numerical stability
     R = np.exp(R)
     R /= R.sum(axis=0, keepdims=True)
 
@@ -304,7 +316,7 @@ def _run_soft_kmeans(
     ref_basis: str = "X_pca",
     K: int | None = None,
     ref_basis_loadings: str = "PCs",
-    sigma: float = 0.1
+    sigma: float = 0.1,
 ):
     N = adata_ref.shape[0]
 
@@ -314,7 +326,7 @@ def _run_soft_kmeans(
     model = KMeans(n_clusters=K, init="k-means++", n_init=10, max_iter=25)
     model.fit(adata_ref.obsm[ref_basis])
     Y = model.cluster_centers_
-    
+
     Z_cos = adata_ref.obsm[ref_basis]
     Z_cos /= Z_cos.max(axis=1, keepdims=True)
     Z_cos /= np.linalg.norm(Z_cos, ord=2, axis=1, keepdims=True)
@@ -322,11 +334,7 @@ def _run_soft_kmeans(
     # (1) Normalize
     Y /= np.linalg.norm(Y, ord=2, axis=1)
     # (2) Assign cluster probabilities
-    R = -2 * (1 - np.dot(Y, Z_cos)) / sigma[..., np.newaxis]
-    R -= np.max(R, axis = 0)  # maybe for numerical stability
-    R = np.exp(R)
-    R /= np.sum(R, axis=0, keepdims=True)
-
+    R = _assign_clusters(Z_cos, sigma, Y, K)
     C = R @ Z_cos
 
     adata_ref.uns["harmony"] = {

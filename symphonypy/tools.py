@@ -210,7 +210,7 @@ def map_embedding(
             ref_basis=adjusted_basis_query,
             ref_basis_loadings=ref_basis_loadings,
             K=K,
-            sigma=sigma
+            sigma=sigma,
         )
 
     if use_genes_column is not None:
@@ -238,15 +238,7 @@ def map_embedding(
     # [Nq, d]
     X = adata_query.obsm[query_basis_ref]
 
-    if isinstance(sigma, (int, float)):
-        sigma = np.array([sigma], dtype=np.float32)
-    else:
-        sigma = np.array(sigma, dtype=np.float32)
-        assert (
-            len(sigma) == harmony_ref["K"]
-        ), "sigma paramater must be either a single float or an array of length equal to number of clusters"
-
-    R = _assign_clusters(X, sigma, harmony_ref["Y"])
+    R = _assign_clusters(X, sigma, harmony_ref["Y"], harmony_ref["K"])
 
     # 3. correct query embeddings
     # likewise harmonypy
