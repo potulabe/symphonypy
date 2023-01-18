@@ -7,6 +7,7 @@ import numpy as np
 
 from anndata import AnnData
 from harmonypy import run_harmony
+from scipy.sparse import issparse
 
 logger = logging.getLogger("symphonypy")
 
@@ -208,13 +209,44 @@ def _correct_query(
     return X_corr.T
 
 
+def _adjust_for_missing_genes(
+    adata: AnnData, use_genes_list: np.array, use_genes_list_present: np.array
+) -> np.matrix:
+    """
+    Sets zero expression to missing genes, returns non-sparse matrix.
+    Usefull when you will still do non-sparse-efficient normalization.
+    Args:
+        adata (AnnData): adata
+        use_genes_list (np.array): which genes expressions to be left
+        use_genes_list_present (np.array): which genes from use_genes_list are indeed present in adata
+
+    Returns:
+        np.matrix: non-sparse array of expressions
+        of all the genes from use_genes_list
+        with expressions of missing genes set to zero
+    """
+    logger.warning(
+        "%i out of %i "
+        "genes from reference are missing in query dataset or have zero std in reference, "
+        "their expressions in query will be set to zero",
+        (~use_genes_list_present).sum(),
+        use_genes_list.shape[0],
+    )
+    t = np.zeros((adata.shape[0], use_genes_list.shape[0]))
+
+    X = adata[:, use_genes_list[use_genes_list_present]].X
+    t[:, use_genes_list_present] = X.A if issparse(X) else X.copy()
+
+    return t
+
+
 def _map_query_to_ref(
     adata_ref: AnnData,
     adata_query: AnnData,
     query_basis_ref: str = "X_pca_reference",
     ref_basis_loadings: str = "PCs",
     max_value: float | None = 10.0,
-    use_genes_column: str = "highly_variable",
+    use_genes_column: str | None = "highly_variable",
 ):
     assert (
         "mean" in adata_ref.var
@@ -223,10 +255,18 @@ def _map_query_to_ref(
         "std" in adata_ref.var
     ), "Gene expression stds are expected to be saved in adata_ref.var"
 
-    use_genes_list = np.array(adata_ref.var_names[adata_ref.var[use_genes_column]])
+    use_genes_list = (
+        np.array(adata_ref.var_names)
+        if use_genes_column is None
+        else np.array(adata_ref.var_names[adata_ref.var[use_genes_column]])
+    )
 
     # [N_genes]
-    stds = np.array(adata_ref.var["std"][adata_ref.var[use_genes_column]])
+    stds = (
+        np.array(adata_ref.var["std"])
+        if use_genes_column is None
+        else np.array(adata_ref.var["std"][adata_ref.var[use_genes_column]])
+    )
 
     use_genes_list_present = np.isin(use_genes_list, adata_query.var_names) & (
         stds != 0
@@ -234,24 +274,21 @@ def _map_query_to_ref(
 
     # Adjusting for missing genes.
     if not all(use_genes_list_present):
-        logger.warning(
-            "%i out of %i "
-            "genes from reference are missing in query dataset or have zero std in reference,"
-            "their expressions in query will be set to zero",
-            (~use_genes_list_present).sum(),
-            use_genes_list.shape[0],
+        t = _adjust_for_missing_genes(
+            adata_query, use_genes_list, use_genes_list_present
         )
-        # anyway after scaling data wouldn't be sparse efficient,
-        # so will convert it to array
-        t = np.zeros((adata_query.shape[0], use_genes_list.shape[0]))
-        t[:, use_genes_list_present] = adata_query[
-            :, use_genes_list[use_genes_list_present]
-        ].X.A
     else:
-        t = adata_query[:, use_genes_list].X.A
+        X = adata_query[:, use_genes_list].X
+        t = X.A if issparse(X) else X.copy()
 
-    means = np.array(
-        adata_ref.var["mean"][adata_ref.var[use_genes_column]][use_genes_list_present]
+    means = (
+        np.array(adata_ref.var["mean"][use_genes_list_present])
+        if use_genes_column is None
+        else np.array(
+            adata_ref.var["mean"][adata_ref.var[use_genes_column]][
+                use_genes_list_present
+            ]
+        )
     )
     stds = stds[use_genes_list_present]
 

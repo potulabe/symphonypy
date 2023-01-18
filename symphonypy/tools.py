@@ -4,16 +4,146 @@ from __future__ import annotations
 import logging
 import warnings
 
+from typing import Iterable, Optional, Union
+
 import numpy as np
 import pandas as pd
 
-from sklearn.neighbors import KNeighborsClassifier
 from anndata import AnnData
+from packaging import version
+from sklearn.neighbors import KNeighborsClassifier
+from scipy.sparse import issparse
 
-from ._utils import _assign_clusters, _correct_query, _map_query_to_ref
+from scanpy.tools._ingest import Ingest, _DimDict
+from scanpy._compat import pkg_version
+
+from ._utils import (
+    _assign_clusters,
+    _correct_query,
+    _map_query_to_ref,
+    _adjust_for_missing_genes,
+)
 
 
+ANNDATA_MIN_VERSION = version.parse("0.7rc1")
 logger = logging.getLogger("symphonypy")
+
+
+class Ingest_sp(Ingest):
+    def fit(self, adata_new: AnnData):
+        self._obs = pd.DataFrame(index=adata_new.obs.index)
+        self._obsm = _DimDict(adata_new.n_obs, axis=0)
+
+        self._adata_new = adata_new
+        self._obsm["rep"] = self._same_rep()
+
+    def _same_rep(self):
+        adata = self._adata_new
+
+        if self._n_pcs is not None:
+            return self._pca(self._n_pcs)
+
+        if self._use_rep == "X":
+            assert all(adata.var_names == self._adata_ref.var_names), (
+                "Can't use 'X' as a representation because var_names "
+                "do not match between reference and query"
+            )
+            return adata.X
+
+        if self._use_rep in adata.obsm.keys():
+            return adata.obsm[self._use_rep]
+
+        return adata.X
+
+    def _pca(self, n_pcs=None):
+
+        if self._pca_use_hvg:
+            use_genes_list = self._adata_ref.var_names[
+                self._adata_ref.var["highly_variable"]
+            ]
+        else:
+            use_genes_list = self._adata_ref.var_names
+
+        use_genes_list_present = np.isin(use_genes_list, self._adata_new.var_names)
+
+        if not all(use_genes_list_present):
+            X = _adjust_for_missing_genes(
+                self._adata_new, use_genes_list, use_genes_list_present
+            )
+        else:
+            X = self._adata_new[:, use_genes_list].X
+            X = X.toarray() if issparse(X) else X.copy()
+
+        if self._pca_centered:
+            X -= X.mean(axis=0)
+
+        X_pca = np.dot(X, self._pca_basis[:, :n_pcs])
+
+        return X_pca
+
+
+def ingest(
+    adata: AnnData,
+    adata_ref: AnnData,
+    obs: Optional[Union[str, Iterable[str]]] = None,
+    embedding_method: Union[str, Iterable[str]] = ("umap", "pca"),
+    labeling_method: str = "knn",
+    neighbors_key: Optional[str] = None,
+    inplace: bool = True,
+    **kwargs,
+):
+    """
+    copied from https://github.com/scverse/scanpy/blob/master/scanpy/tools/_ingest.py
+    with little change that var_names equality between adata and adata_new wouldn't be check if needless
+
+    Args:
+        adata (AnnData): _description_
+        adata_ref (AnnData): _description_
+        obs (Optional[Union[str, Iterable[str]]], optional): _description_. Defaults to None.
+        embedding_method (Union[str, Iterable[str]], optional): _description_. Defaults to ('umap', 'pca').
+        labeling_method (str, optional): _description_. Defaults to 'knn'.
+        neighbors_key (Optional[str], optional): _description_. Defaults to None.
+        inplace (bool, optional): _description_. Defaults to True.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    anndata_version = pkg_version("anndata")
+    if anndata_version < ANNDATA_MIN_VERSION:
+        raise ValueError(
+            f"ingest only works correctly with anndata>={ANNDATA_MIN_VERSION} "
+            f"(you have {anndata_version}) as prior to {ANNDATA_MIN_VERSION}, "
+            "`AnnData.concatenate` did not concatenate `.obsm`."
+        )
+
+    start = logger.info("running ingest")
+    obs = [obs] if isinstance(obs, str) else obs
+    embedding_method = (
+        [embedding_method] if isinstance(embedding_method, str) else embedding_method
+    )
+    labeling_method = (
+        [labeling_method] if isinstance(labeling_method, str) else labeling_method
+    )
+
+    if len(labeling_method) == 1 and len(obs or []) > 1:
+        labeling_method = labeling_method * len(obs)
+
+    ing = Ingest_sp(adata_ref, neighbors_key)
+    ing.fit(adata)
+
+    for method in embedding_method:
+        ing.map_embedding(method)
+
+    if obs is not None:
+        ing.neighbors(**kwargs)
+        for i, col in enumerate(obs):
+            ing.map_labels(col, labeling_method[i])
+
+    logger.info("    finished", time=start)
+    return ing.to_adata(inplace)
 
 
 def map_embedding(
@@ -22,18 +152,11 @@ def map_embedding(
     key: list[str] | str | None = None,
     lamb: float | np.array | None = None,
     sigma: float | np.array = 0.1,
-    use_genes_column: str = "highly_variable",
+    use_genes_column: str | None = "highly_variable",
     adjusted_basis_query: str = "X_pca_harmony",
     query_basis_ref: str = "X_pca_reference",
 ) -> None:
-    """
-    Args:
-        adata_ref (AnnData): _description_
-        adata_query (AnnData): _description_
-        key (Union[List[str], str, None]): _description_
-        query_basis (str): _description_
-        lamb (Union[float, np.array, None]): _description_
-    """
+
     # Errors
     assert (
         "mean" in adata_ref.var
@@ -44,9 +167,11 @@ def map_embedding(
     assert (
         "harmony" in adata_ref.uns
     ), "Firstly run symphonypy.pp.harmony_integrate on adata_ref"
-    assert (
-        use_genes_column in adata_ref.var
-    ), f"Column `{use_genes_column}` not found in adata_ref.var"
+
+    if use_genes_column is not None:
+        assert (
+            use_genes_column in adata_ref.var
+        ), f"Column `{use_genes_column}` not found in adata_ref.var. Set `use_genes_column` parameter properly"
 
     # Warning
     if "log1p" not in adata_query.uns:
@@ -146,24 +271,14 @@ def transfer_labels_kNN(
 def tsne(
     adata: AnnData,
     use_rep: str = "X_pca",
-    t_sne_slot: str = "X_tsne",
+    # t_sne_slot: str = "X_tsne",
     use_model: "openTSNE.TSNEEmbedding" | str | None = None,
     save_path: str | None = None,
     use_raw: bool | None = None,
     return_model: bool = False,
     **kwargs,
 ) -> None | "openTSNE.TSNEEmbedding":
-    """
-    Args:
-        adata (AnnData): _description_
-        use_rep (str): _description_
-        t_sne_slot (str): _description_
-        use_model (str | None | TSNEEmbedding): _description_
-        save_path (str | None): _description_
-        use_raw (bool | None): _description_
-        return_model (bool): _description_
-        **kwargs: _description_
-    """
+
     import pickle
 
     try:
@@ -188,7 +303,7 @@ def tsne(
         else:
             model = tsne_obj.fit(adata.X)
 
-        adata.obsm[t_sne_slot] = np.array(model)
+        # adata.obsm[t_sne_slot] = np.array(model)
     else:
 
         if isinstance(use_model, str):
@@ -207,7 +322,7 @@ def tsne(
             model = model.transform(adata.raw.X)
         else:
             model = model.transform(adata.X)
-        adata.obsm[t_sne_slot] = np.array(model)
+        # adata.obsm[t_sne_slot] = np.array(model)
 
     if save_path:
         with open(save_path, "wb") as model_file:
