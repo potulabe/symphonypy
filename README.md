@@ -125,8 +125,8 @@ sp.tl.ingest(adata=adata_query, adata_ref=adata_ref, embedding_method="umap")
 ### Map tSNE with `openTSNE`
 ```python
 # map query to the reference's tSNE
-tSNE = sc.tl.tsne(adata_ref, use_rep="X_pca_harmony", return_model=True)
-sc.tl.tsne(adata_query, use_model=tSNE)
+tSNE = sp.tl.tsne(adata_ref, use_rep="X_pca_harmony", return_model=True)
+sp.tl.tsne(adata_query, use_model=tSNE)
 # -> adata_query.obsm["X_tsne"]
 ```
 
