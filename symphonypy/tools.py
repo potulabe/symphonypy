@@ -308,7 +308,7 @@ def transfer_labels_kNN(
 def tsne(
     adata: AnnData,
     use_rep: str = "X_pca",
-    # t_sne_slot: str = "X_tsne",
+    t_sne_slot: str = "X_tsne",
     use_model: "openTSNE.TSNEEmbedding" | str | None = None,
     save_path: str | None = None,
     use_raw: bool | None = None,
@@ -340,7 +340,7 @@ def tsne(
         else:
             model = tsne_obj.fit(adata.X)
 
-        # adata.obsm[t_sne_slot] = np.array(model)
+        adata.obsm[t_sne_slot] = np.array(model)
     else:
 
         if isinstance(use_model, str):
@@ -359,7 +359,7 @@ def tsne(
             model = model.transform(adata.raw.X)
         else:
             model = model.transform(adata.X)
-        # adata.obsm[t_sne_slot] = np.array(model)
+        adata.obsm[t_sne_slot] = np.array(model)
 
     if save_path:
         with open(save_path, "wb") as model_file:
