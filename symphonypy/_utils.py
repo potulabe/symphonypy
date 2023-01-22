@@ -233,8 +233,8 @@ def _adjust_for_missing_genes(
     """
     logger.warning(
         "%i out of %i "
-        "genes from reference are missing in query dataset or have zero std in reference, "
-        "their expressions in query will be set to zero",
+        "genes from the reference are missing in the query dataset or have zero std in the reference, "
+        "their expressions in the query will be set to zero",
         (~use_genes_list_present).sum(),
         use_genes_list.shape[0],
     )

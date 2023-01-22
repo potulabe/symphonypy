@@ -126,7 +126,7 @@ sp.tl.ingest(adata=adata_query, adata_ref=adata_ref, embedding_method="umap")
 ```python
 # map query to the reference's tSNE
 tSNE = sp.tl.tsne(adata_ref, use_rep="X_pca_harmony", return_model=True)
-sp.tl.tsne(adata_query, use_model=tSNE)
+sp.tl.tsne(adata_query, use_model=tSNE, use_rep="X_pca_harmony")
 # -> adata_query.obsm["X_tsne"]
 ```
 
@@ -134,7 +134,7 @@ sp.tl.tsne(adata_query, use_model=tSNE)
 - Harmony (R) vs harmonypy benchmarking:
   - [benchmarking/Benchmarking_harmony_PBMC_Satija.ipynb](benchmarking/Benchmarking_harmony_PBMC_Satija.ipynb)
   - [benchmarking/Benchmarking_harmony_PBMC_Satija_CITEseq.ipynb](benchmarking/Benchmarking_harmony_PBMC_Satija_CITEseq.ipynb)
-- Symphony (R) vs symphonypy benchmarking: [benchmarking/Benchmarking_symphony.ipynb](benchmarking/Benchmarking_symphony.ipynb)
+- Symphony (R) vs symphonypy benchmarking: [benchmarking/Benchmarking_symphony_PBMC.ipynb](benchmarking/Benchmarking_symphony_PBMC.ipynb)
 - PBMC example from the Symphony repo: [benchmarking/validation_PBMC_example.ipynb](benchmarking/validation_PBMC_example.ipynb)
 
 Download data used in benchmarking: [benchmarking/data_download.ipynb](benchmarking/data_download.ipynb)
