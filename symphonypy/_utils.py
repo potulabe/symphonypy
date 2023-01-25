@@ -25,7 +25,7 @@ def _harmony_integrate_python(
     ref_basis_loadings: str = "PCs",
     verbose: bool = False,
     **harmony_kwargs,
-):
+) -> None:
     ref_ho = run_harmony(
         adata.obsm[ref_basis_source],
         meta_data=adata.obs,
