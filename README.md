@@ -75,8 +75,8 @@ sp.pp.harmony_integrate(
 
 # run symphonypy to map query to the reference's embedding:
 sp.tl.map_embedding(
-    adata_ref,
     adata_query,
+    adata_ref,
     key=batch_key,  # could be list of batch keys
     lamb=lamb,
     use_genes_column="highly_variable",
@@ -93,8 +93,8 @@ transferred_labels = ["predicted_cell_type", "predicted_cell_subtype"]
 
 # transfer labels via scipy kNN
 sp.tl.transfer_labels_kNN(
-    adata_ref,
     adata_query,
+    adata_ref,
     labels,
     # kNN args
     n_neighbours,
@@ -119,7 +119,7 @@ sc.pp.neighbors(
 )
 sc.tl.umap(adata_ref)
 # run ingest (same as sc.tl.ingest, but with setting to zero expressions of var_names missed in query)
-sp.tl.ingest(adata=adata_query, adata_ref=adata_ref, embedding_method="umap")
+sp.tl.ingest(adata_query=adata_query, adata_ref=adata_ref, embedding_method="umap")
 # -> adata_query.obsm["X_umap"]
 ```
 ### Map tSNE with `openTSNE`

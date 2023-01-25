@@ -84,10 +84,10 @@ class Ingest_sp(Ingest):
 
 
 def ingest(
-    adata: AnnData,
+    adata_query: AnnData,
     adata_ref: AnnData,
     obs: Optional[Union[str, Iterable[str]]] = None,
-    embedding_method: Union[str, Iterable[str]] = ("umap", "pca"),
+    embedding_method: Union[str, Iterable[str]] = "umap",
     labeling_method: str = "knn",
     neighbors_key: Optional[str] = None,
     inplace: bool = True,
@@ -98,7 +98,7 @@ def ingest(
     with little change that var_names equality between adata and adata_new wouldn't be check if needless
 
     Args:
-        adata (AnnData): _description_
+        adata_query (AnnData): _description_
         adata_ref (AnnData): _description_
         obs (Optional[Union[str, Iterable[str]]], optional): _description_. Defaults to None.
         embedding_method (Union[str, Iterable[str]], optional): _description_. Defaults to ('umap', 'pca').
@@ -133,7 +133,7 @@ def ingest(
         labeling_method = labeling_method * len(obs)
 
     ing = Ingest_sp(adata_ref, neighbors_key)
-    ing.fit(adata)
+    ing.fit(adata_query)
 
     for method in embedding_method:
         ing.map_embedding(method)
@@ -144,12 +144,16 @@ def ingest(
             ing.map_labels(col, labeling_method[i])
 
     logger.info("    finished", time=start)
+
+    if "rep" in ing._obsm:
+        del ing._obsm["rep"]
+
     return ing.to_adata(inplace)
 
 
 def map_embedding(
-    adata_ref: AnnData,
     adata_query: AnnData,
+    adata_ref: AnnData,
     key: list[str] | str | None = None,
     lamb: float | np.array | None = None,
     sigma: float | np.array = 0.1,
@@ -274,8 +278,8 @@ def map_embedding(
 
 
 def transfer_labels_kNN(
-    adata_ref: AnnData,
     adata_query: AnnData,
+    adata_ref: AnnData,
     ref_labels: list[str] | str,
     *kNN_args,
     query_labels: list[str] | str | None = None,
