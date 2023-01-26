@@ -2,6 +2,7 @@
 # Symphonypy
 Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to Python
 
+- [Installation](#installation)
 - [Usage](#usage)
   - [Preprocessing](#preprocessing)
   - [Run symphony](#run-symphony)
