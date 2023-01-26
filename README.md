@@ -30,14 +30,15 @@ sc.pp.normalize_total(adata_ref, target_sum=1e5)
 sc.pp.log1p(adata_ref)
 sc.pp.highly_variable_genes(
     adata_ref,
-    batch_key=batch_key_ref, # If you have more than one batch in reference
+    batch_key=batch_key_ref,
     n_top_genes=n_top_genes,
 )
 adata_ref.raw = adata_ref
 adata_ref = adata_ref[:, adata_ref.var.highly_variable]
 sc.pp.scale(adata_ref, max_value=10)
 sc.pp.pca(adata_ref, n_comps=30, zero_center=False)
-sp.pp.harmony_integrate(adata_ref, key=batch_key_ref) # If you have more than one batch in reference
+# You can skip Harmony if you have only one batch in reference
+sp.pp.harmony_integrate(adata_ref, key=batch_key_ref)
 ```
 
 ### Step 2: Query preprocessing and Symphony
