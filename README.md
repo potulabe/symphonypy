@@ -5,7 +5,7 @@ Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to P
 - [Installation](#installation)
 - [Examples](#examples)
 - [Instructions](#instructions)
-  - [Step 1: reference building](#step-1-reference-building)
+  - [Step 1: Reference building](#step-1-reference-building)
   - [Step 2: Query preprocessing and Symphony](#step-2-query-preprocessing-and-symphony)
   - [Step 3: Label transfer](#step-3-label-transfer)
   - [Step 4 (optional): Dimensionality reduction](#step-4-optional-dimensionality-reduction)
@@ -24,7 +24,7 @@ Here are Jupyter-notebooks with simple examples of how to use symphonypy
 - with [reference building](notebooks/Symphonypy_simple_tutorial.ipynb) from scratch.
 
 ## Instructions
-### Step 1: reference building
+### Step 1: Reference building
 ```
 sc.pp.normalize_total(adata_ref, target_sum=1e5)
 sc.pp.log1p(adata_ref)
