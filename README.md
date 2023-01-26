@@ -15,6 +15,13 @@ Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to P
 > - precomputed symphony reference datasets
 > - Python package
 
+
+## Installation
+Symphonypy package might be installed via pip:
+```
+pip install symphonypy
+```
+
   
 ## Usage
 ### Preprocessing
