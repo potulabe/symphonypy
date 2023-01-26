@@ -134,10 +134,16 @@ def ingest(
 
     # dirty hard-code
     if neighbors_key is None:
-        neighbors_key = 'neighbors'
+        neighbors_key = "neighbors"
     if neighbors_key in adata_ref.uns:
-        if 'use_rep' not in adata_ref.uns.neighbors['params']:
-            adata_ref.uns.neighbors['params']['use_rep'] = "X_pca"
+        if "use_rep" not in adata_ref.uns[neighbors_key]["params"]:
+            warnings.warn("'X_pca' representation will be used for neighbors search")
+            adata_ref.uns.neighbors["params"]["use_rep"] = "X_pca"
+        else:
+            logger.info(
+                "'%s' representation will be used for neighbors search"
+                % adata_ref.uns.neighbors["params"]["use_rep"]
+            )
 
     ing = Ingest_sp(adata_ref, neighbors_key)
     ing.fit(adata_query)
