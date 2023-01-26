@@ -132,6 +132,13 @@ def ingest(
     if len(labeling_method) == 1 and len(obs or []) > 1:
         labeling_method = labeling_method * len(obs)
 
+    # dirty hard-code
+    if neighbors_key is None:
+        neighbors_key = 'neighbors'
+    if neighbors_key in adata_ref.uns:
+        if 'use_rep' not in adata_ref.uns.neighbors['params']:
+            adata_ref.uns.neighbors['params']['use_rep'] = "X_pca"
+
     ing = Ingest_sp(adata_ref, neighbors_key)
     ing.fit(adata_query)
 
