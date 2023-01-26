@@ -3,7 +3,7 @@
 Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to Python
 
 - [Installation](#installation)
-- [Usage examples](#examples)
+- [Examples](#examples)
 - [Benchmarking](#benchmarking)
 
 
@@ -23,6 +23,3 @@ Here are Jupyter-notebooks with simple examples of how to use symphonypy
 - Harmony (R) vs harmonypy benchmarking:
   - [benchmarking/Benchmarking_harmony_PBMC_Satija.ipynb](benchmarking/Benchmarking_harmony_PBMC_Satija_CITEseq.ipynb)
 - Symphony (R) vs symphonypy benchmarking: [benchmarking/Benchmarking_symphony_PBMC.ipynb](benchmarking/Benchmarking_symphony_PBMC.ipynb)
-- PBMC example from the Symphony repo: [benchmarking/validation_PBMC_example.ipynb](benchmarking/validation_PBMC_example.ipynb)
-
-Download data used in benchmarking: [benchmarking/data_download.ipynb](benchmarking/data_download.ipynb)
