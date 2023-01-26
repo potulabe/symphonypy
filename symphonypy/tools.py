@@ -162,6 +162,7 @@ def map_embedding(
     query_basis_ref: str = "X_pca_reference",
     ref_basis_loadings: str = "PCs",
     K: int | None = None,
+    ref_basis: str = "X_pca",
 ) -> None:
     """
     Actually runs Symphony algorithm for mapping adata_query to adata_ref.
@@ -193,6 +194,8 @@ def map_embedding(
             as gene loadings to map adata_query to adata_ref coords. Defaults to "PCs".
         K (int | None, optional): Number of clusters to use for k-means clustering.
             Only used if harmony integration was not performed on adata_ref. Defaults to None.
+        ref_basis (str): which reference embedding use for k-means clustering.
+            Only used if harmony integration was not performed on adata_ref. Defaults to X_pca.
     """
     # Errors
     assert (
@@ -211,7 +214,7 @@ def map_embedding(
         )
         _run_soft_kmeans(
             adata_ref,
-            ref_basis=adjusted_basis_query,
+            ref_basis=ref_basis,
             ref_basis_loadings=ref_basis_loadings,
             K=K,
             sigma=sigma,
