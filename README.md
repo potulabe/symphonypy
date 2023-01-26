@@ -11,11 +11,6 @@ Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to P
   - [Map tSNE with `openTSNE`](#map-tsne-with-opentsne)
 - [Benchmarking](#benchmarking)
 
-> Currently under development:
-> - evaluation of confidence metrics
-> - precomputed symphony reference datasets
-> - Python package
-
 
 ## Installation
 Symphonypy package might be installed via pip:
@@ -27,6 +22,7 @@ pip install symphonypy
 Here are Jupyter-notebooks with simple examples of how to use symphonypy
 - with [pre-built references](notebooks/Symphonypy_precomputed.ipynb) from original Symphony,
 - with [reference building](notebooks/Symphonypy_simple_tutorial.ipynb) from scratch.
+
 
 ## Benchmarking
 - Harmony (R) vs harmonypy benchmarking:
