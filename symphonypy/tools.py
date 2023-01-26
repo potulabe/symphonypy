@@ -138,11 +138,11 @@ def ingest(
     if neighbors_key in adata_ref.uns:
         if "use_rep" not in adata_ref.uns[neighbors_key]["params"]:
             warnings.warn("'X_pca' representation will be used for neighbors search")
-            adata_ref.uns.neighbors["params"]["use_rep"] = "X_pca"
+            adata_ref.uns[neighbors_key]["params"]["use_rep"] = "X_pca"
         else:
             logger.info(
                 "'%s' representation will be used for neighbors search"
-                % adata_ref.uns.neighbors["params"]["use_rep"]
+                % adata_ref.uns[neighbors_key]["params"]["use_rep"]
             )
 
     ing = Ingest_sp(adata_ref, neighbors_key)
