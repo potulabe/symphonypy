@@ -332,7 +332,7 @@ def _run_soft_kmeans(
     Z_cos /= np.linalg.norm(Z_cos, ord=2, axis=1, keepdims=True)
 
     # (1) Normalize
-    Y /= np.linalg.norm(Y, ord=2, axis=1)
+    Y /= np.linalg.norm(Y, ord=2, axis=1, keepdims=True)
     # (2) Assign cluster probabilities
     R = _assign_clusters(Z_cos, sigma, Y, K)
     C = R @ Z_cos
