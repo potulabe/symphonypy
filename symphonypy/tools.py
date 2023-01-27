@@ -65,7 +65,7 @@ class Ingest_sp(Ingest):
         else:
             use_genes_list = self._adata_ref.var_names
 
-        use_genes_list_present = np.isin(use_genes_list, self._adata_new.var_names)
+        use_genes_list_present = use_genes_list.isin(self._adata_new.var_names)
 
         if not all(use_genes_list_present):
             X = _adjust_for_missing_genes(
@@ -137,11 +137,13 @@ def ingest(
         neighbors_key = "neighbors"
     if neighbors_key in adata_ref.uns:
         if "use_rep" not in adata_ref.uns[neighbors_key]["params"]:
-            warnings.warn("'X_pca' representation will be used for neighbors search")
+            warnings.warn(
+                "'X_pca' representation will be used for neighbors search in adata_query"
+            )
             adata_ref.uns[neighbors_key]["params"]["use_rep"] = "X_pca"
         else:
             logger.info(
-                "'%s' representation will be used for neighbors search"
+                "'%s' representation will be used for neighbors search in adata_query"
                 % adata_ref.uns[neighbors_key]["params"]["use_rep"]
             )
 
@@ -171,11 +173,11 @@ def map_embedding(
     lamb: float | np.array | None = None,
     sigma: float | np.array = 0.1,
     use_genes_column: str | None = "highly_variable",
-    adjusted_basis_query: str = "X_pca_harmony",
-    query_basis_ref: str = "X_pca_reference",
+    transferred_adjusted_basis: str = "X_pca_harmony",
+    transferred_primary_basis: str = "X_pca_reference",
     ref_basis_loadings: str = "PCs",
     K: int | None = None,
-    ref_basis: str = "X_pca",
+    reference_primary_basis: str = "X_pca",
 ) -> None:
     """
     Actually runs Symphony algorithm for mapping adata_query to adata_ref.
@@ -184,8 +186,8 @@ def map_embedding(
     without batch correction.
 
     Adds mapping of query cells to reference coords
-    to adata_query.obsm[query_basis_ref] and
-    symphony-corrected coords to adata_query.obsm[adjusted_basis_query].
+    to adata_query.obsm[transferred_primary_basis] and
+    symphony-corrected coords to adata_query.obsm[transferred_adjusted_basis].
 
     Args:
         adata_ref (AnnData): reference adata,
@@ -199,16 +201,16 @@ def map_embedding(
         sigma (float | np.array, optional): Ridge regularization parameter for the linear model. Defaults to 0.1.
         use_genes_column (str | None, optional): adata_ref.var[use_genes_column] genes will
             be used to map query embeddings to reference. Defaults to "highly_variable".
-        adjusted_basis_query (str, optional): in adata_query.obsm[adjusted_basis_query]
+        transferred_adjusted_basis (str, optional): in adata_query.obsm[transferred_adjusted_basis]
             symphony-adjusted coords will be saved. Defaults to "X_pca_harmony".
-        query_basis_ref (str, optional): in adata_query.obsm[query_basis_ref]
+        transferred_primary_basis (str, optional): in adata_query.obsm[transferred_primary_basis]
             adata_query mapping to reference coords will be saved. Defaults to "X_pca_reference".
         ref_basis_loadings (str, optional): adata_ref.varm[ref_basis_loadings] will be used
             as gene loadings to map adata_query to adata_ref coords. Defaults to "PCs".
         K (int | None, optional): Number of clusters to use for k-means clustering.
             Only used if harmony integration was not performed on adata_ref. Defaults to None.
-        ref_basis (str): which reference embedding use for k-means clustering.
-            Only used if harmony integration was not performed on adata_ref. Defaults to X_pca.
+        reference_primary_basis (str): which reference embedding use for k-means clustering.
+            Only used if harmony integration was not performed on adata_ref. Defaults to "X_pca".
     """
     # Errors
     assert (
@@ -220,14 +222,22 @@ def map_embedding(
 
     if "harmony" not in adata_ref.uns:
         warnings.warn(
-            "Not found `harmony` object in adata_ref.uns. "
-            "Assuming that adata_ref doesn't have any batches. "
-            "Otherwise, firstly run symphonypy.pp.harmony_integrate "
-            "on adata_ref to account for them."
+            f"Not found `harmony` object in adata_ref.uns.\n"
+            f"Assuming that adata_ref doesn't have any batches, "
+            f"and using '{reference_primary_basis}' representation of adata_ref for clustering.\n"
+            f"Otherwise, firstly run symphonypy.pp.harmony_integrate "
+            f"on adata_ref to account for them."
         )
+        if reference_primary_basis != transferred_adjusted_basis:
+            warnings.warn(
+                f"'{reference_primary_basis}' != '{transferred_adjusted_basis}'\n"
+                f"For sp.tl.ingest to work correctly `reference_primary_basis` parameter's value "
+                "should be equal to the one's of `transferred_adjusted_basis`."
+            )
+
         _run_soft_kmeans(
             adata_ref,
-            ref_basis=ref_basis,
+            ref_basis=reference_primary_basis,
             ref_basis_loadings=ref_basis_loadings,
             K=K,
             sigma=sigma,
@@ -249,14 +259,14 @@ def map_embedding(
     _map_query_to_ref(
         adata_ref=adata_ref,
         adata_query=adata_query,
-        query_basis_ref=query_basis_ref,
+        transferred_primary_basis=transferred_primary_basis,
         ref_basis_loadings=ref_basis_loadings,
         use_genes_column=use_genes_column,
     )
 
     # 2. assign clusters
     # [Nq, d]
-    X = adata_query.obsm[query_basis_ref]
+    X = adata_query.obsm[transferred_primary_basis]
 
     R = _assign_clusters(X, sigma, harmony_ref["Y"], harmony_ref["K"])
 
@@ -288,7 +298,7 @@ def map_embedding(
     # [B + 1, B + 1]
     lamb = np.diag(np.insert(lamb, 0, 0))
 
-    adata_query.obsm[adjusted_basis_query] = _correct_query(
+    adata_query.obsm[transferred_adjusted_basis] = _correct_query(
         X, phi_, R, harmony_ref["Nr"], harmony_ref["C"], lamb
     )
 

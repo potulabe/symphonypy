@@ -249,7 +249,7 @@ def _adjust_for_missing_genes(
 def _map_query_to_ref(
     adata_ref: AnnData,
     adata_query: AnnData,
-    query_basis_ref: str = "X_pca_reference",
+    transferred_primary_basis: str = "X_pca_reference",
     ref_basis_loadings: str = "PCs",
     max_value: float | None = 10.0,
     use_genes_column: str | None = "highly_variable",
@@ -262,21 +262,19 @@ def _map_query_to_ref(
     ), "Gene expression stds are expected to be saved in adata_ref.var"
 
     use_genes_list = (
-        np.array(adata_ref.var_names)
+        adata_ref.var_names
         if use_genes_column is None
-        else np.array(adata_ref.var_names[adata_ref.var[use_genes_column]])
+        else adata_ref.var_names[adata_ref.var[use_genes_column]]
     )
 
     # [N_genes]
     stds = (
-        np.array(adata_ref.var["std"])
+        adata_ref.var["std"]
         if use_genes_column is None
-        else np.array(adata_ref.var["std"][adata_ref.var[use_genes_column]])
+        else adata_ref.var["std"][adata_ref.var[use_genes_column]]
     )
 
-    use_genes_list_present = np.isin(use_genes_list, adata_query.var_names) & (
-        stds != 0
-    )
+    use_genes_list_present = use_genes_list.isin(adata_query.var_names) & (stds != 0)
 
     # Adjusting for missing genes.
     if not all(use_genes_list_present):
@@ -306,7 +304,7 @@ def _map_query_to_ref(
 
     # map query to reference's PCA coords
     # [cells, n_comps] = [cells, genes] * [genes, n_comps]
-    adata_query.obsm[query_basis_ref] = np.array(
+    adata_query.obsm[transferred_primary_basis] = np.array(
         t @ adata_ref.varm[ref_basis_loadings][adata_ref.var_names.isin(use_genes_list)]
     )
 
