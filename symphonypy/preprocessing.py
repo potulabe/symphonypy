@@ -28,13 +28,18 @@ def harmony_integrate(
         algorithm parameters to adata.uns
 
     Args:
-        adata (ad.AnnData): reference adata object
-        basis_source (str): adata.obsm[basis_source] will be used
-            as input embedding to Harmony
-        basis_adjusted (str): at adata.obsm[basis_adjusted]
-            corrected embedding will be saved
+        adata (AnnData): adata object with batch
         key (list[str] | str): which columns from adata.obs
             to use as batch keys (`vars_use` parameter of Harmony)
+        flavor (str, optional): if to run harmonypy or Harmony via rpy2. Defaults to "python".
+        ref_basis_source (str, optional): adata.obsm[ref_basis_source] will be used
+            as input embedding to Harmony. Defaults to "X_pca".
+        ref_basis_adjusted (str, optional): at adata.obsm[ref_basis_adjusted]
+            corrected embedding will be saved. Defaults to "X_pca_harmony".
+        ref_basis_loadings (str, optional): gene loadings of ref_basis_source. Defaults to "PCs".
+        verbose (bool, optional): verbosity level of harmony. Defaults to False.
+        random_seed (int, optional): random_seed for harmony. Defaults to 1.
+
     """
 
     if flavor == "python":

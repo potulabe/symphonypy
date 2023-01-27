@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 import logging
+import warnings
 
 import numpy as np
+import pandas as pd
 
 from anndata import AnnData
 from harmonypy import run_harmony
 from scipy.sparse import issparse
 from sklearn.cluster import KMeans
+
+from scanpy.tools._ingest import Ingest, _DimDict
 
 logger = logging.getLogger("symphonypy")
 
@@ -269,9 +273,9 @@ def _map_query_to_ref(
 
     # [N_genes]
     stds = (
-        adata_ref.var["std"]
+        np.array(adata_ref.var["std"])
         if use_genes_column is None
-        else adata_ref.var["std"][adata_ref.var[use_genes_column]]
+        else np.array(adata_ref.var["std"][adata_ref.var[use_genes_column]])
     )
 
     use_genes_list_present = use_genes_list.isin(adata_query.var_names) & (stds != 0)
@@ -353,3 +357,70 @@ def _run_soft_kmeans(
         "harmony_kwargs": {},
         "converged": True,
     }
+
+
+class Ingest_sp(Ingest):
+    def __init__(self, *args, **kwargs):
+
+        self._force_use_rep = kwargs.pop("use_representation", None)
+
+        super().__init__(*args, **kwargs)
+
+    def fit(self, adata_new: AnnData):
+        self._obs = pd.DataFrame(index=adata_new.obs.index)
+        self._obsm = _DimDict(adata_new.n_obs, axis=0)
+
+        self._adata_new = adata_new
+        self._obsm["rep"] = self._same_rep()
+
+    def _same_rep(self):
+        adata = self._adata_new
+
+        if self._force_use_rep is not None:
+            if not self._force_use_rep == self._use_rep:
+                warnings.warn(
+                    f"'{self._use_rep}' adata_reference's representation was used for reference, "
+                    f"while '{self._force_use_rep}' was used for query. Be sure that they correspond."
+                )
+            return adata.obsm[self._force_use_rep]
+
+        if self._n_pcs is not None:
+            return self._pca(self._n_pcs)
+
+        if self._use_rep == "X":
+            assert all(adata.var_names == self._adata_ref.var_names), (
+                "Can't use 'X' as a representation because var_names "
+                "do not match between reference and query"
+            )
+            return adata.X
+
+        if self._use_rep in adata.obsm.keys():
+            return adata.obsm[self._use_rep]
+
+        return adata.X
+
+    def _pca(self, n_pcs=None):
+
+        if self._pca_use_hvg:
+            use_genes_list = self._adata_ref.var_names[
+                self._adata_ref.var["highly_variable"]
+            ]
+        else:
+            use_genes_list = self._adata_ref.var_names
+
+        use_genes_list_present = use_genes_list.isin(self._adata_new.var_names)
+
+        if not all(use_genes_list_present):
+            X = _adjust_for_missing_genes(
+                self._adata_new, use_genes_list, use_genes_list_present
+            )
+        else:
+            X = self._adata_new[:, use_genes_list].X
+            X = X.toarray() if issparse(X) else X.copy()
+
+        if self._pca_centered:
+            X -= X.mean(axis=0)
+
+        X_pca = np.dot(X, self._pca_basis[:, :n_pcs])
+
+        return X_pca
