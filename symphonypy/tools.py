@@ -12,75 +12,20 @@ import pandas as pd
 from anndata import AnnData
 from packaging import version
 from sklearn.neighbors import KNeighborsClassifier
-from scipy.sparse import issparse
 
-from scanpy.tools._ingest import Ingest, _DimDict
 from scanpy._compat import pkg_version
 
 from ._utils import (
     _assign_clusters,
     _correct_query,
     _map_query_to_ref,
-    _adjust_for_missing_genes,
+    Ingest_sp,
     _run_soft_kmeans,
 )
 
 
 ANNDATA_MIN_VERSION = version.parse("0.7rc1")
 logger = logging.getLogger("symphonypy")
-
-
-class Ingest_sp(Ingest):
-    def fit(self, adata_new: AnnData):
-        self._obs = pd.DataFrame(index=adata_new.obs.index)
-        self._obsm = _DimDict(adata_new.n_obs, axis=0)
-
-        self._adata_new = adata_new
-        self._obsm["rep"] = self._same_rep()
-
-    def _same_rep(self):
-        adata = self._adata_new
-
-        if self._n_pcs is not None:
-            return self._pca(self._n_pcs)
-
-        if self._use_rep == "X":
-            assert all(adata.var_names == self._adata_ref.var_names), (
-                "Can't use 'X' as a representation because var_names "
-                "do not match between reference and query"
-            )
-            return adata.X
-
-        if self._use_rep in adata.obsm.keys():
-            return adata.obsm[self._use_rep]
-
-        return adata.X
-
-    def _pca(self, n_pcs=None):
-
-        if self._pca_use_hvg:
-            use_genes_list = self._adata_ref.var_names[
-                self._adata_ref.var["highly_variable"]
-            ]
-        else:
-            use_genes_list = self._adata_ref.var_names
-
-        use_genes_list_present = use_genes_list.isin(self._adata_new.var_names)
-
-        if not all(use_genes_list_present):
-            X = _adjust_for_missing_genes(
-                self._adata_new, use_genes_list, use_genes_list_present
-            )
-        else:
-            X = self._adata_new[:, use_genes_list].X
-            X = X.toarray() if issparse(X) else X.copy()
-
-        if self._pca_centered:
-            X -= X.mean(axis=0)
-
-        X_pca = np.dot(X, self._pca_basis[:, :n_pcs])
-
-        return X_pca
 
 
 def ingest(
@@ -91,26 +36,28 @@ def ingest(
     labeling_method: str = "knn",
     neighbors_key: Optional[str] = None,
     inplace: bool = True,
+    use_representation: str | None = None,
     **kwargs,
 ):
     """
     copied from https://github.com/scverse/scanpy/blob/master/scanpy/tools/_ingest.py
-    with little change that var_names equality between adata and adata_new wouldn't be check if needless
+    with little change that var_names equality between adata and adata_new wouldn't be check if needless,
+    and additional parameter `use_representation` is added.
 
     Args:
-        adata_query (AnnData): _description_
-        adata_ref (AnnData): _description_
-        obs (Optional[Union[str, Iterable[str]]], optional): _description_. Defaults to None.
-        embedding_method (Union[str, Iterable[str]], optional): _description_. Defaults to ('umap', 'pca').
-        labeling_method (str, optional): _description_. Defaults to 'knn'.
-        neighbors_key (Optional[str], optional): _description_. Defaults to None.
-        inplace (bool, optional): _description_. Defaults to True.
-
-    Raises:
-        ValueError: _description_
+        adata_query (AnnData): target adata object.
+        adata_ref (AnnData): source adata object.
+        obs (Optional[Union[str, Iterable[str]]], optional): which columns from adata_red.obs to transfer. Defaults to None.
+        embedding_method (Union[str, Iterable[str]], optional): which adata_ref's embeddings to transfer. Defaults to ('umap', 'pca').
+        labeling_method (str, optional): which method to use for labeling transferring. Defaults to 'knn'.
+        neighbors_key (Optional[str], optional): which key from adata_ref.uns to use as source of neighbors info. Defaults to None.
+        inplace (bool, optional): if to write directly to adata_query or return an adjusted copy of adata_query. Defaults to True.
+        use_representation (str, None): which adata_query's representation to use for embedding mappings. If None, it will be decided depending on circumstances. Defaults to None.
+        kwargs: will be forwarded to the `sc.tl.Ingest.neighbors` function.
 
     Returns:
-        _type_: _description_
+        if inplace is False returns a copy of adata_query with additional slots,
+        otherwise adds to adata_query.
     """
     anndata_version = pkg_version("anndata")
     if anndata_version < ANNDATA_MIN_VERSION:
@@ -136,18 +83,19 @@ def ingest(
     if neighbors_key is None:
         neighbors_key = "neighbors"
     if neighbors_key in adata_ref.uns:
-        if "use_rep" not in adata_ref.uns[neighbors_key]["params"]:
-            warnings.warn(
-                "'X_pca' representation will be used for neighbors search in adata_query"
-            )
-            adata_ref.uns[neighbors_key]["params"]["use_rep"] = "X_pca"
-        else:
-            logger.info(
-                "'%s' representation will be used for neighbors search in adata_query"
-                % adata_ref.uns[neighbors_key]["params"]["use_rep"]
-            )
+        if use_representation is None:
+            if "use_rep" not in adata_ref.uns[neighbors_key]["params"]:
+                warnings.warn(
+                    "'X_pca' representation will be used for neighbors search in adata_query"
+                )
+                adata_ref.uns[neighbors_key]["params"]["use_rep"] = "X_pca"
+            else:
+                logger.info(
+                    "'%s' representation will be used for neighbors search in adata_query",
+                    adata_ref.uns[neighbors_key]["params"]["use_rep"],
+                )
 
-    ing = Ingest_sp(adata_ref, neighbors_key)
+    ing = Ingest_sp(adata_ref, neighbors_key, use_representation=use_representation)
     ing.fit(adata_query)
 
     for method in embedding_method:
@@ -190,13 +138,11 @@ def map_embedding(
     symphony-corrected coords to adata_query.obsm[transferred_adjusted_basis].
 
     Args:
-        adata_ref (AnnData): reference adata,
-            to account for batch effect in reference
-            first run harmony_integrate
-        adata_query (AnnData): query adata
+        adata_query (AnnData): query adata object.
+        adata_ref (AnnData): reference adata object
+            (to account for batch effect in reference first run harmony_integrate).
         key (list[str] | str | None, optional): which of the columns
-            from adata_query.obs to consider as batch keys.
-            Defaults to None.
+            from adata_query.obs to consider as batch keys. Defaults to None.
         lamb (float | np.array | None, optional): Entropy regularization parameter for soft k-means. Defaults to None.
         sigma (float | np.array, optional): Ridge regularization parameter for the linear model. Defaults to 0.1.
         use_genes_column (str | None, optional): adata_ref.var[use_genes_column] genes will
@@ -209,7 +155,7 @@ def map_embedding(
             as gene loadings to map adata_query to adata_ref coords. Defaults to "PCs".
         K (int | None, optional): Number of clusters to use for k-means clustering.
             Only used if harmony integration was not performed on adata_ref. Defaults to None.
-        reference_primary_basis (str): which reference embedding use for k-means clustering.
+        reference_primary_basis (str): which reference embedding to use for k-means clustering.
             Only used if harmony integration was not performed on adata_ref. Defaults to "X_pca".
     """
     # Errors
@@ -314,15 +260,17 @@ def transfer_labels_kNN(
     **kNN_kwargs,
 ) -> None:
     """
+    Run sklearn kNN classificator for label transferring.
     Args:
-        adata_ref (AnnData): _description_
-        adata_query (AnnData): _description_
-        ref_basis (str): _description_
-        query_basis (str): _description_
-        ref_labels (list[str]): keys from adata_ref.obs to transfer to adata_query. Default: "X_pca_harmony"
+        adata_ref (AnnData): adata object to use for train.
+        adata_query (AnnData): adata object to use for prediction.
+        kNN_args: will be passed to kNN class init function.
+        ref_labels (list[str]): columns from adata_ref.obs to use as labels for model training. Default: "X_pca_harmony".
         query_labels (list[str] | None): keys in adata_query.obs where to save transferred ref_labels.
-            (in corresponding to ref_labels order). If not provided, same as ref_labels will be used
-        n_neighbors (int): kNN parameter
+            (in corresponding to ref_labels order). If not provided, same as ref_labels will be used.
+        ref_basis (str): adata_ref.obsm[ref_basis] will be used as features for kNN training.
+        query_basis (str): adata_query.obsm[query_basis] will be used as features for prediction.
+        kNN_kwargs: will be passed to kNN class init function.
     """
     knn = KNeighborsClassifier(*kNN_args, **kNN_kwargs)
 
@@ -345,6 +293,23 @@ def tsne(
     return_model: bool = False,
     **kwargs,
 ) -> None | "openTSNE.TSNEEmbedding":
+    """
+    Run openTSNE dimension reduction on adata if use_model is None,
+    or ingest adata.obsm[use_rep] to existing embedding, saved in use_model.
+
+    Args:
+        adata (Anndata): adata object
+        use_rep (str): adata.obsm[use_rep] will be used as features for `openTSNE` model.
+        t_sne_slot (str): to adata.obsm[t_sne_slot] embedding will be saved.
+        use_model (`openTSNE.TSNEEmbedding`, str, None): `openTSNE` model object or path to pickle dumped model to use. Defaults to None.
+        save_path (str, None): Filepath to save pickle of the `openTSNE` model. Defaults to None.
+        use_raw (bool, None): If to use adata.raw.X as features for `openTSNE`. Defaults to None.
+        return_model (bool): If to return `openTSNE` model. Defaults to False.
+        kwargs: will be forwarded to the `openTSNE.TSNE` init function.
+
+    Returns:
+        if return_model is True, returns `openTSNE` model
+    """
 
     import pickle
 
@@ -394,7 +359,7 @@ def tsne(
     if save_path:
         with open(save_path, "wb") as model_file:
             pickle.dump(model, model_file, protocol=pickle.HIGHEST_PROTOCOL)
-            print(f"Model is saved in {save_path}")
+            logger.info("Model is saved in %s", save_path)
 
     if return_model:
         return model
