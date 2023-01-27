@@ -174,12 +174,6 @@ def map_embedding(
             f"Otherwise, firstly run symphonypy.pp.harmony_integrate "
             f"on adata_ref to account for them."
         )
-        if reference_primary_basis != transferred_adjusted_basis:
-            warnings.warn(
-                f"'{reference_primary_basis}' != '{transferred_adjusted_basis}'\n"
-                f"For sp.tl.ingest to work correctly `reference_primary_basis` parameter's value "
-                "should be equal to the one's of `transferred_adjusted_basis`."
-            )
 
         _run_soft_kmeans(
             adata_ref,
