@@ -47,6 +47,7 @@ sp.pp.harmony_integrate(adata_ref, key=batch_key_ref)
 sc.pp.normalize_total(adata_query, target_sum=1e5)
 sc.pp.log1p(adata_query)
 sp.tl.map_embedding(adata_query, adata_ref, key=batch_key_query)
+# If you use reference without Harmony, add `transferred_adjusted_basis="X_pca"`
 ```
 
 ### Step 3: Label transfer
