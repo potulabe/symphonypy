@@ -48,6 +48,7 @@ sc.pp.normalize_total(adata_query, target_sum=1e5)
 sc.pp.log1p(adata_query)
 sp.tl.map_embedding(adata_query, adata_ref, key=batch_key_query)
 # If you use reference without Harmony, add `transferred_adjusted_basis="X_pca"`
+# (or another basis that is used as primary basis in reference)
 ```
 
 ### Step 3: Label transfer
@@ -62,6 +63,8 @@ sc.pp.neighbors(adata_ref, use_rep="X_pca_harmony")
 sc.tl.umap(adata_ref)
 sp.tl.ingest(adata_query, adata_ref)
 ```
+> Note that `ingest()` uses the same slot in `adata_query.obsm` as `neighbors()` in `adata_ref.obsm`. That means that if you construct reference without Harmony, you need to put Symphony results to the same slot as was used for `neighbors()` (usually it's `.obsm["X_pca"]`)
+
 With t-SNE (`openTSNE` should be installed, `pip install openTSNE`):
 ```python
 tSNE_model = sp.tl.tsne(adata_ref, use_rep="X_pca_harmony", return_model=True)
