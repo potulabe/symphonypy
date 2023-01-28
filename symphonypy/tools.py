@@ -36,13 +36,13 @@ def ingest(
     labeling_method: str = "knn",
     neighbors_key: Optional[str] = None,
     inplace: bool = True,
-    use_representation: str | None = None,
+    use_rep: str | None = None,
     **kwargs,
 ):
     """
     copied from https://github.com/scverse/scanpy/blob/master/scanpy/tools/_ingest.py
     with little change that var_names equality between adata and adata_new wouldn't be check if needless,
-    and additional parameter `use_representation` is added.
+    and additional parameter `use_rep` is added.
 
     Args:
         adata_query (AnnData): target adata object.
@@ -52,7 +52,7 @@ def ingest(
         labeling_method (str, optional): which method to use for labeling transferring. Defaults to 'knn'.
         neighbors_key (Optional[str], optional): which key from adata_ref.uns to use as source of neighbors info. Defaults to None.
         inplace (bool, optional): if to write directly to adata_query or return an adjusted copy of adata_query. Defaults to True.
-        use_representation (str, None): which adata_query's representation to use for embedding mappings. If None, it will be decided depending on circumstances. Defaults to None.
+        use_rep (str, None): which adata_query's representation to use for embedding mappings. If None, it will be decided depending on circumstances. Defaults to None.
         kwargs: will be forwarded to the `sc.tl.Ingest.neighbors` function.
 
     Returns:
@@ -83,7 +83,7 @@ def ingest(
     if neighbors_key is None:
         neighbors_key = "neighbors"
     if neighbors_key in adata_ref.uns:
-        if use_representation is None:
+        if use_rep is None:
             if "use_rep" not in adata_ref.uns[neighbors_key]["params"]:
                 warnings.warn(
                     "'X_pca' representation will be used for neighbors search in adata_query"
@@ -95,7 +95,7 @@ def ingest(
                     adata_ref.uns[neighbors_key]["params"]["use_rep"],
                 )
 
-    ing = Ingest_sp(adata_ref, neighbors_key, use_representation=use_representation)
+    ing = Ingest_sp(adata_ref, neighbors_key, use_representation=use_rep)
     ing.fit(adata_query)
 
     for method in embedding_method:
