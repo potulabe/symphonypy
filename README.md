@@ -22,7 +22,7 @@ pip install symphonypy
 Here are Jupyter-notebooks with simple examples of how to use symphonypy
 - with [pre-built references](notebooks/Symphonypy_precomputed.ipynb) from original Symphony,
 - with [reference building](notebooks/Symphonypy_simple_tutorial.ipynb) from scratch,
-- with [mapping to reference without batch](notebooks/Symphonypy_without_harmony_tutorial.ipynb).
+- for [mapping to reference without batch](notebooks/Symphonypy_without_harmony_tutorial.ipynb).
 
 ## Instructions
 ### Step 1: Reference building
