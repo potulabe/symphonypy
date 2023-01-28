@@ -69,7 +69,6 @@ sc.tl.umap(adata_ref)
 sp.tl.ingest(adata_query, adata_ref)
 # -> adata_query.obsm["X_umap"] <- mapped to the reference's UMAP coords
 ```
-> Note that by default `ingest()` uses the same slot in `adata_query.obsm` as `neighbors()` in `adata_ref.obsm`. If the corresponding slot has different name in adata_query, specify it's name in the `use_representation` `ingest()`'s parameter.
 
 With t-SNE (`openTSNE` should be installed, `pip install openTSNE`):
 ```python
