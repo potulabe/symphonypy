@@ -17,10 +17,6 @@ from scanpy.tools._ingest import Ingest, _DimDict
 logger = logging.getLogger("symphonypy")
 
 
-# TODO:
-# def _compute_confidence()
-
-
 def _harmony_integrate_python(
     adata: AnnData,
     key: list[str] | str,
@@ -44,16 +40,13 @@ def _harmony_integrate_python(
 
     # [K, d] = [K, Nref] x [d, N_ref].T
     C = ref_ho.R @ ref_ho.Z_corr.T
-    Y = C / np.linalg.norm(C, ord=2, axis=1, keepdims=True)
 
     adata.uns["harmony"] = {
         # [K] the number of cells softly belonging to each cluster
         "Nr": ref_ho.R.sum(axis=1),
+        # ref cluster centroids
         # [K, d]
         "C": C,
-        # ref cluster centroids L2 normalized
-        # [K, d]
-        "Y": Y,
         # number of clusters
         "K": ref_ho.K,
         # sigma [K] (cluster cross enthropy regularization coef)
@@ -63,6 +56,8 @@ def _harmony_integrate_python(
         "vars_use": key,
         "harmony_kwargs": harmony_kwargs,
         "converged": converged,
+        # [K, Nref]
+        "R": ref_ho.R,
     }
 
     if not converged:
@@ -131,22 +126,20 @@ def _harmony_integrate_R(
         R = dollar(ho, "R")
         Z_corr = dollar(ho, "Z_corr").T
         K = dollar(ho, "K")
-        Y = dollar(ho, "Y")
         sigma = dollar(ho, "sigma")
 
         # [K, d] = [K, Nref] x [d, N_ref].T
         C = R @ Z_corr
-        Y = C / np.linalg.norm(C, ord=2, axis=1, keepdims=True)
 
         adata.uns["harmony"] = {
             "Nr": R.sum(axis=1),
             "C": C,
-            "Y": Y,
             "K": K[0],
             "sigma": sigma.squeeze(1),
             "ref_basis_loadings": ref_basis_loadings,
             "ref_basis_adjusted": ref_basis_adjusted,
             "converged": converged,
+            "R": R,
         }
         adata.obsm[ref_basis_adjusted] = Z_corr
 
@@ -327,26 +320,24 @@ def _run_soft_kmeans(
 
     model = KMeans(n_clusters=K, init="k-means++", n_init=10, max_iter=25)
     model.fit(adata_ref.obsm[ref_basis])
-    Y = model.cluster_centers_
+    C = model.cluster_centers_
 
     Z_cos = adata_ref.obsm[ref_basis]
     Z_cos /= Z_cos.max(axis=1, keepdims=True)
     Z_cos /= np.linalg.norm(Z_cos, ord=2, axis=1, keepdims=True)
 
     # (1) Normalize
-    Y /= np.linalg.norm(Y, ord=2, axis=1, keepdims=True)
+    Y = C / np.linalg.norm(C, ord=2, axis=1, keepdims=True)
     # (2) Assign cluster probabilities
     R = _assign_clusters(Z_cos, sigma, Y, K)
-    C = R @ Z_cos
 
     adata_ref.uns["harmony"] = {
         # [K] the number of cells softly belonging to each cluster
         "Nr": R.sum(axis=1),
+        # ref cluster centroids
         # [K, d]
         "C": C,
-        # ref cluster centroids L2 normalized
-        # [K, d]
-        "Y": Y,
+        # "centroids_pc": centroids_pc,
         # number of clusters
         "K": K,
         # sigma [K] (cluster cross enthropy regularization coef)
@@ -356,6 +347,7 @@ def _run_soft_kmeans(
         "vars_use": None,
         "harmony_kwargs": {},
         "converged": True,
+        "R": R
     }
 
 

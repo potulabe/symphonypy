@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import warnings
 
-from typing import Iterable, Optional, Union
+from typing import Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -27,6 +27,201 @@ from ._utils import (
 ANNDATA_MIN_VERSION = version.parse("0.7rc1")
 logger = logging.getLogger("symphonypy")
 
+
+def per_cell_confidence(
+    adata_query: AnnData,
+    adata_ref: AnnData,
+    ref_basis_adjusted: str = "X_pca_harmony",
+    query_basis_adjusted: str = "X_pca_harmony",
+    transferred_primary_basis: str = "X_pca_reference",
+    obs: str = "symphony_per_cell_dist",
+):
+    """
+    Calculates the weighted Mahalanobis distance for query cells to reference clusters.
+    Higher distance metric indicates less confidence.
+    Saves the metric to `adata_query.obs[obs]`
+
+    Args:
+        adata_query (AnnData): query adata object mapped to `adata_ref` with Symphony
+        adata_ref (AnnData): reference adata object (with Harmony object in adata_ref.uns)
+        ref_basis_adjusted (str, optional): adata_ref.obsm[ref_basis_adjusted] should contain resulting (harmony integrated if batch was present) reference representation. Defaults to "X_pca_harmony".
+        transferred_primary_basis (str, optional): adata_query.obsm[transferred_primary_basis] should contain pre-Harmony reference PC query representation. Defaults to "X_pca_reference".
+        obs (str, optional): at adata_query.obs[obs] confidence metric will be saved. Defaults to "symphony_confidence".
+    """
+
+    assert (
+        "harmony" in adata_ref.uns
+    ), "Harmony object not found in adata_ref.uns['harmony']. First, run standard symphony query mapping."
+
+    harmony = adata_ref.uns["harmony"]
+
+    # [K, Nref]
+    R = harmony["R"]
+
+    if not "inv_cluster_covs" in harmony:  # TODO: do not forget to save it in precomputed references
+        # count reference's covariance matrices
+
+        # [N_ref, d]
+        X_ref = adata_ref.obsm[ref_basis_adjusted]
+
+        K, _ = R.shape
+        R_ = R[:, np.newaxis]
+
+        # [d, N_ref]
+        X_ref_T = X_ref.T
+        # [K, d, N_ref] = [K, 1, Nref] X [d, N_ref]
+        X_weighted = np.multiply(R_, X_ref_T)
+        # [K, 1]
+        N_ = R.sum(axis=1, keepdims=True)
+        # [K, d]
+        X_weighted_mean = X_weighted.sum(axis=2) / N_
+        X_weighted_mean = X_weighted_mean[..., np.newaxis]
+        # [1, d, N_ref]
+        X_ref_T_ = X_ref_T[np.newaxis]
+        # [K, d, N_ref]
+        X_ref_K = np.repeat(X_ref_T_, K, axis=0)
+        # [K, d, N_ref] = [K, d, N_ref] - [K, d, 1]
+        X_centered = X_ref_K - X_weighted_mean
+        # [K, d, N_ref] = [K, 1, Nref] X [K, d, N_ref]
+        X_centered_weighted = np.multiply(R_, X_centered)
+
+        # [K, d, d] = [K, d, N_ref] * [N_ref, d]
+        cluster_covs = (X_centered_weighted @ X_ref) / (N_ - 1)[..., np.newaxis]
+        # [K, d, d]
+        inv_cluster_covs = np.linalg.inv(cluster_covs)
+        # save
+        harmony["inv_cluster_covs"] = inv_cluster_covs
+        harmony["cluster_centers"] = X_weighted_mean
+
+    else:
+        logger.info(
+            "Using precomputed reference's clusters covariance matrices from the Harmony object"
+        )
+        inv_cluster_covs = harmony["inv_cluster_covs"]
+        X_weighted_mean = harmony["cluster_centers"]
+
+    # count distance from each query cell to each reference's cluster centroid
+    # [Nq, d]
+    X_q = adata_query.obsm[transferred_primary_basis]
+    # [1, Nq, d]
+    X_q_ = X_q[np.newaxis]
+    # [K, Nq, d]
+    X_q_K = np.repeat(X_q_, K, axis=0)
+    X_weighted_mean = X_weighted_mean.squeeze(2)[:, np.newaxis]
+    # [K, Nq, d] = [K, Nq, d] - [K, 1, d]
+    adata_query_centered = X_q_K - X_weighted_mean
+    # [K, Nq] = np.sum(([K, Nq, d] * [d, d]) X [K, Nq, d], axis=2)
+    maha_dists = (
+        np.sum(
+            np.multiply(adata_query_centered @ inv_cluster_covs, adata_query_centered),
+            axis=2,
+        )
+        ** 0.5
+    )
+
+    # average distance weighted by cluster membership
+    # [Nq] = ([K, Nq] X [K, Nq]).mean()
+    adata_query.obs[obs] = np.mean(
+        np.multiply(maha_dists, adata_query.obsm[f"{query_basis_adjusted}_R"].T), axis=0
+    )
+
+
+def _cluster_maha_dist(
+    adata_query_cluster_obs: pd.DataFrame,
+    adata_query: AnnData,
+    transferred_primary_basis: str,
+    reference_cluster_centroids: np.array,
+    u: float,
+    lamb: float,
+):
+    adata_cluster = adata_query[adata_query_cluster_obs.index, :]
+    d = reference_cluster_centroids.shape[1]
+    # [Nq, d]
+    query_coords = adata_cluster.obsm[transferred_primary_basis]
+
+    # Calculate query cluster centroid and covariances in PC space
+    query_cluster_centroid = query_coords.mean(axis=0)
+    query_cluster_centered = query_coords - query_cluster_centroid
+    query_cluster_cov = (
+        query_cluster_centered.T
+        @ query_cluster_centered
+        / (query_cluster_centered.shape[0] - 1)
+    )
+    query_cluster_centroid_norm = query_cluster_centroid / np.linalg.norm(
+        query_cluster_centroid, ord=2
+    )
+
+    # Find nearest reference cluster centroid
+    ref_centroid_closest_idx = np.argmax(
+        reference_cluster_centroids @ query_cluster_centroid_norm
+    )
+    ref_centroid_closest = reference_cluster_centroids[ref_centroid_closest_idx]
+
+    # Calculate Mahalanobis distance from query cluster to nearest reference centroid
+    cluster_size = adata_query_cluster_obs.shape[0]
+    if cluster_size < u * d:
+        logger.info(
+            "cluster contains too few cells to estimate confidence: ', query_cluster_labels_unique[c])"
+        )
+        dist = None
+    else:
+        query_cluster_cov += np.diag([lamb] * d)
+        inv_cluster_cov = np.linalg.inv(query_cluster_cov)
+        dif = ref_centroid_closest - query_cluster_centroid
+        dist = float((dif @ inv_cluster_cov @ dif) ** 0.5)
+
+    return dist
+
+
+def per_cluster_confidence(
+    adata_query: AnnData,
+    adata_ref: AnnData,
+    cluster_key: str,
+    u: float = 2,
+    lamb: float = 0,
+    transferred_primary_basis: str = "X_pca_reference",
+    obs: str = "symphony_per_cluster_dist",
+    uns: str = "symphony_per_cluster_dist",
+):
+    """
+    Calculates the Mahalanobis distance from user-defined query clusters to their nearest
+    reference centroid after initial projection into reference PCA space.
+    All query cells in a cluster get the same score. Higher distance indicates less confidence.
+    Due to the instability of estimating covariance with small numbers of cells, we do not assign a
+    score to clusters smaller than u * d, where d is the dimensionality of the embedding and u is specified.
+
+    Args:
+        adata_query (AnnData): query adata object mapped to `adata_ref` with Symphony
+        adata_ref (AnnData): reference adata object (with Harmony object in adata_ref.uns)
+        cluster_key (str, [str]): which keys from adata_query.obs to use as a cluster label (if list, adata_query will be grouped by them)
+        u (float, optional): at least u * d cells are to be assigned to a cluster, where d is a dimensionality of representation. Defaults to 2.
+        lamb (float, optional): ridge regression like coef for covariance matrix inversion numerical stability. Defaults to 0 (no ridge).
+    """
+    assert (
+        "harmony" in adata_ref.uns
+    ), "Harmony object not found in adata_ref.uns['harmony']. First, run standard symphony query mapping."
+
+    harmony = adata_ref.uns["harmony"]
+
+    # [K, d]
+    C_ = harmony["C"] / harmony["Nr"][:, np.newaxis]  # not normalised
+    reference_cluster_centroids = C_ / np.linalg.norm(C_, ord=2, axis=1, keepdims=True)
+    
+    dists = adata_query.obs.groupby([cluster_key]).apply(
+        _cluster_maha_dist,
+        adata_query,
+        transferred_primary_basis=transferred_primary_basis,
+        reference_cluster_centroids=reference_cluster_centroids,
+        u=u,
+        lamb=lamb,
+    )
+
+    if uns is not None:
+        adata_query.uns[uns] = {"key": cluster_key, "dist": dists}
+    if obs is not None:
+        grouped = adata_query.obs.groupby([cluster_key])[[cluster_key]]
+        adata_query.obs[obs] = grouped.transform(lambda x: dists[x].to_numpy())
+        
 
 def ingest(
     adata_query: AnnData,
@@ -135,7 +330,8 @@ def map_embedding(
 
     Adds mapping of query cells to reference coords
     to adata_query.obsm[transferred_primary_basis] and
-    symphony-corrected coords to adata_query.obsm[transferred_adjusted_basis].
+    symphony-corrected coords to adata_query.obsm[transferred_adjusted_basis],
+    and query to the reference's clusters membership to adata_query.obsm[transferred_adjusted_basis + "_R"]
 
     Args:
         adata_query (AnnData): query adata object.
@@ -207,8 +403,10 @@ def map_embedding(
     # 2. assign clusters
     # [Nq, d]
     X = adata_query.obsm[transferred_primary_basis]
+    C = harmony_ref["C"]
+    Y = C / np.linalg.norm(C, ord=2, axis=1, keepdims=True)
 
-    R = _assign_clusters(X, sigma, harmony_ref["Y"], harmony_ref["K"])
+    R = _assign_clusters(X, sigma, Y, harmony_ref["K"])
 
     # 3. correct query embeddings
     # likewise harmonypy
@@ -241,6 +439,7 @@ def map_embedding(
     adata_query.obsm[transferred_adjusted_basis] = _correct_query(
         X, phi_, R, harmony_ref["Nr"], harmony_ref["C"], lamb
     )
+    adata_query.obsm[f"{transferred_adjusted_basis}_R"] = R.T
 
 
 def transfer_labels_kNN(
