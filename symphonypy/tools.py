@@ -101,11 +101,9 @@ def per_cell_confidence(
 
     # [K, Nq]
     Rq = adata_query.obsm[f"{query_basis_adjusted}_R"].T
-    # [Nq]
-    N = Rq.sum(axis=0)
     # average distance weighted by cluster membership
     # [Nq] = ([K, Nq] X [K, Nq]).sum()
-    adata_query.obs[obs] = np.sum(np.multiply(maha_dists, Rq), axis=0) / N
+    adata_query.obs[obs] = np.sum(np.multiply(maha_dists, Rq), axis=0)
 
 
 def per_cluster_confidence(
@@ -142,7 +140,7 @@ def per_cluster_confidence(
     harmony = adata_ref.uns["harmony"]
 
     # [K, d]
-    C_ = harmony["C"] / harmony["Nr"][:, np.newaxis]  # not normalised
+    C_ = harmony["C"]  # not normalised
     reference_cluster_centroids = C_ / np.linalg.norm(C_, ord=2, axis=1, keepdims=True)
 
     dists = adata_query.obs.groupby(cluster_key).apply(
