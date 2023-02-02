@@ -100,12 +100,12 @@ def per_cell_confidence(
     )
 
     # [K, Nq]
-    Rq = adata_query.obsm[f"{query_basis_adjusted}_R"]
+    Rq = adata_query.obsm[f"{query_basis_adjusted}_R"].T
     # [Nq]
     N = Rq.sum(axis=0)
     # average distance weighted by cluster membership
     # [Nq] = ([K, Nq] X [K, Nq]).sum()
-    adata_query.obs[obs] = np.sum(np.multiply(maha_dists, Rq.T), axis=0) / N
+    adata_query.obs[obs] = np.sum(np.multiply(maha_dists, Rq), axis=0) / N
 
 
 def per_cluster_confidence(
