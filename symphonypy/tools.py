@@ -99,11 +99,13 @@ def per_cell_confidence(
         ** 0.5
     )
 
+    # [K, Nq]
+    Rq = adata_query.obsm[f"{query_basis_adjusted}_R"]
+    # [Nq]
+    N = Rq.sum(axis=0)
     # average distance weighted by cluster membership
     # [Nq] = ([K, Nq] X [K, Nq]).sum()
-    adata_query.obs[obs] = np.sum(
-        np.multiply(maha_dists, adata_query.obsm[f"{query_basis_adjusted}_R"].T), axis=0
-    )
+    adata_query.obs[obs] = np.sum(np.multiply(maha_dists, Rq.T), axis=0) / N
 
 
 def per_cluster_confidence(
@@ -143,7 +145,7 @@ def per_cluster_confidence(
     C_ = harmony["C"] / harmony["Nr"][:, np.newaxis]  # not normalised
     reference_cluster_centroids = C_ / np.linalg.norm(C_, ord=2, axis=1, keepdims=True)
 
-    dists = adata_query.obs.groupby([cluster_key]).apply(
+    dists = adata_query.obs.groupby(cluster_key).apply(
         _cluster_maha_dist,
         adata_query,
         transferred_primary_basis=transferred_primary_basis,
@@ -155,8 +157,8 @@ def per_cluster_confidence(
     if uns is not None:
         adata_query.uns[uns] = {"key": cluster_key, "dist": dists}
     if obs is not None:
-        grouped = adata_query.obs.groupby([cluster_key])[[cluster_key]]
-        adata_query.obs[obs] = grouped.transform(lambda x: dists[x].to_numpy())
+        grouped = adata_query.obs.groupby(cluster_key)[cluster_key]
+        adata_query.obs[obs] = grouped.transform(lambda x: dists[x[0]])
 
 
 def ingest(
