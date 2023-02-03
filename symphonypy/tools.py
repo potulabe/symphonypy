@@ -100,7 +100,7 @@ def per_cell_confidence(
     )
 
     # [K, Nq]
-    Rq = adata_query.obsm[f"{query_basis_adjusted}_R"].T
+    Rq = adata_query.obsm[f"{query_basis_adjusted}_symphony_R"].T
     # average distance weighted by cluster membership
     # [Nq] = ([K, Nq] X [K, Nq]).sum()
     adata_query.obs[obs] = np.sum(np.multiply(maha_dists, Rq), axis=0)
@@ -375,7 +375,7 @@ def map_embedding(
     adata_query.obsm[transferred_adjusted_basis] = _correct_query(
         X, phi_, R, harmony_ref["Nr"], harmony_ref["C"], lamb
     )
-    adata_query.obsm[f"{transferred_adjusted_basis}_R"] = R.T
+    adata_query.obsm[f"{transferred_adjusted_basis}_symphony_R"] = R.T
 
 
 def transfer_labels_kNN(

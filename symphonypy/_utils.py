@@ -337,7 +337,6 @@ def _run_soft_kmeans(
         # ref cluster centroids
         # [K, d]
         "C": C,
-        # "centroids_pc": centroids_pc,
         # number of clusters
         "K": K,
         # sigma [K] (cluster cross enthropy regularization coef)
@@ -473,9 +472,11 @@ def _cluster_covs(X_ref, R, K):
     # [K, d, N_ref] = [K, 1, Nref] X [d, N_ref]
     X_weighted = np.multiply(R_, X_ref_T)
     # [K, 1]
-    N_ = R.sum(axis=1, keepdims=True)
+    v1 = R.sum(axis=1, keepdims=True)
+    v2 = (R**2).sum(axis=1, keepdims=True)
+    v1_2 = v1**2
     # [K, d]
-    X_weighted_mean = X_weighted.sum(axis=2) / N_
+    X_weighted_mean = X_weighted.sum(axis=2) / v1
     X_weighted_mean = X_weighted_mean[..., np.newaxis]
     # [1, d, N_ref]
     X_ref_T_ = X_ref_T[np.newaxis]
@@ -486,9 +487,9 @@ def _cluster_covs(X_ref, R, K):
     # [K, d, N_ref] = [K, 1, Nref] X [K, d, N_ref]
     X_centered_weighted = np.multiply(R_, X_centered)
 
-    # [K, d, d] = [K, d, N_ref] * [N_ref, d]
-    cluster_covs = (X_centered_weighted @ X_ref) / (N_ - 1)[..., np.newaxis]
-    # [K, d, d]
+    # [K, d, d] = [K, d, N_ref] * [K, d, N_ref]
+    cluster_covs = np.einsum('npq,nrq->npr', X_centered_weighted, X_centered)
+    cluster_covs = cluster_covs * v1[..., np.newaxis] / (v1_2 - v2)[..., np.newaxis]
     inv_cluster_covs = np.linalg.inv(cluster_covs)
 
     return inv_cluster_covs, X_weighted_mean
