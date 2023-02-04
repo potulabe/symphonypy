@@ -8,7 +8,6 @@ def pbmcs_10x_reference(
     file_path: str | Path = "data/symphony_ref/pbmcs_10x_reference.h5ad",
 ) -> AnnData:
     url = "https://zenodo.org/record/7605881/files/pbmcs_10x_reference.h5ad"
-    https://zenodo.org/record//files/pbmcs_10x_reference.h5ad?download=1
     adata = read(file_path, backup_url=url, sparse=True, cache=True)
     return adata
 
