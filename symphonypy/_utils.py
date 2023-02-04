@@ -422,6 +422,7 @@ def _cluster_maha_dist(
     adata_query: AnnData,
     transferred_primary_basis: str,
     reference_cluster_centroids: np.array,
+    reference_cluster_centroids_norm: np.array,
     u: float,
     lamb: float,
 ):
@@ -438,13 +439,11 @@ def _cluster_maha_dist(
         @ query_cluster_centered
         / (query_cluster_centered.shape[0] - 1)
     )
-    query_cluster_centroid_norm = query_cluster_centroid / np.linalg.norm(
-        query_cluster_centroid, ord=2
-    )
+    query_cluster_centroid_norm = query_cluster_centroid
 
     # Find nearest reference cluster centroid
     ref_centroid_closest_idx = np.argmax(
-        reference_cluster_centroids @ query_cluster_centroid_norm
+        reference_cluster_centroids_norm @ query_cluster_centroid_norm
     )
     ref_centroid_closest = reference_cluster_centroids[ref_centroid_closest_idx]
 
@@ -488,7 +487,7 @@ def _cluster_covs(X_ref, R, K):
     X_centered_weighted = np.multiply(R_, X_centered)
 
     # [K, d, d] = [K, d, N_ref] * [K, d, N_ref]
-    cluster_covs = np.einsum('npq,nrq->npr', X_centered_weighted, X_centered)
+    cluster_covs = np.einsum("npq,nrq->npr", X_centered_weighted, X_centered)
     cluster_covs = cluster_covs * v1[..., np.newaxis] / (v1_2 - v2)[..., np.newaxis]
     inv_cluster_covs = np.linalg.inv(cluster_covs)
 

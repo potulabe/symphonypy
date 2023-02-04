@@ -141,13 +141,18 @@ def per_cluster_confidence(
 
     # [K, d]
     C_ = harmony["C"]  # not normalised
-    reference_cluster_centroids = C_ / np.linalg.norm(C_, ord=2, axis=1, keepdims=True)
+    N = harmony["Nr"]
+    reference_cluster_centroids = C_ / N[..., np.newaxis]
+    reference_cluster_centroids_norm = reference_cluster_centroids / np.linalg.norm(
+        reference_cluster_centroids, ord=2, axis=1, keepdims=True
+    )
 
     dists = adata_query.obs.groupby(cluster_key).apply(
         _cluster_maha_dist,
         adata_query,
         transferred_primary_basis=transferred_primary_basis,
         reference_cluster_centroids=reference_cluster_centroids,
+        reference_cluster_centroids_norm=reference_cluster_centroids_norm,
         u=u,
         lamb=lamb,
     )
