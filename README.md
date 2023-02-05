@@ -27,6 +27,9 @@ Here are Jupyter-notebooks with simple examples of how to use symphonypy
 ## Instructions
 ### Step 1: Reference building
 ```python
+import scanpy as sc
+import symphonypy as sp
+
 sc.pp.normalize_total(adata_ref, target_sum=1e5)
 sc.pp.log1p(adata_ref)
 sc.pp.highly_variable_genes(
