@@ -53,6 +53,7 @@ sp.pp.harmony_integrate(adata_ref, key=batch_key_ref)
 # target_sum for normalize_total() should be the same as in reference
 sc.pp.normalize_total(adata_query, target_sum=1e5)
 sc.pp.log1p(adata_query)
+
 # Symphony
 sp.tl.map_embedding(adata_query, adata_ref, key=batch_key_query)
 # -> adata_query.obsm["X_pca_harmony"] <- Symphony adjusted query's PCA
