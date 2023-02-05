@@ -53,6 +53,10 @@ sc.pp.log1p(adata_query)
 # Symphony
 sp.tl.map_embedding(adata_query, adata_ref, key=batch_key_query)
 # -> adata_query.obsm["X_pca_harmony"] <- Symphony adjusted query's PCA
+sp.tl.per_cell_confidence(adata_query, adata_ref)
+# -> adata_query.obs["symphony_per_cell_dist"] <- Symphony mapping score per cell
+sp.tl.per_cluster_confidence(adata_query, adata_ref, query_clusters)
+# -> adata_query.uns["symphony_per_cluster_dist"] <- Symphony mapping score per cluster
 ```
 
 ### Step 3: Label transfer
