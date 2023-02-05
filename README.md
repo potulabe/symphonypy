@@ -20,9 +20,9 @@ pip install symphonypy
 
 ## Examples
 Here are Jupyter-notebooks with simple examples of how to use symphonypy
-- with [pre-built references](notebooks/Symphonypy_precomputed.ipynb) from original Symphony ([view](https://nbviewer.org/github/potulabe/symphonypy/blob/main/notebooks/Symphonypy_precomputed.ipynb)),
-- with [reference building](notebooks/Symphonypy_simple_tutorial.ipynb) from scratch ([view](https://nbviewer.org/github/potulabe/symphonypy/blob/main/notebooks/Symphonypy_simple_tutorial.ipynb)),
-- for [mapping to reference without harmony step](notebooks/Symphonypy_without_harmony_tutorial.ipynb) ([view](https://nbviewer.org/github/potulabe/symphonypy/blob/main/notebooks/Symphonypy_without_harmony_tutorial.ipynb)).
+- with [pre-built references](notebooks/Symphonypy_precomputed.ipynb) from original Symphony ([nbviewer](https://nbviewer.org/github/potulabe/symphonypy/blob/main/notebooks/Symphonypy_precomputed.ipynb)),
+- with [reference building](notebooks/Symphonypy_simple_tutorial.ipynb) from scratch ([nbviewer](https://nbviewer.org/github/potulabe/symphonypy/blob/main/notebooks/Symphonypy_simple_tutorial.ipynb)),
+- for [mapping to reference without harmony step](notebooks/Symphonypy_without_harmony_tutorial.ipynb) ([nbviewer](https://nbviewer.org/github/potulabe/symphonypy/blob/main/notebooks/Symphonypy_without_harmony_tutorial.ipynb)).
 
 ## Instructions
 ### Step 1: Reference building
