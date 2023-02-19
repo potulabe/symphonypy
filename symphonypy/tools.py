@@ -399,11 +399,11 @@ def transfer_labels_kNN(
         adata_ref (AnnData): adata object to use for train.
         adata_query (AnnData): adata object to use for prediction.
         kNN_args: will be passed to kNN class init function.
-        ref_labels (list[str]): columns from adata_ref.obs to use as labels for model training. Default: "X_pca_harmony".
-        query_labels (list[str] | None): keys in adata_query.obs where to save transferred ref_labels.
-            (in corresponding to ref_labels order). If not provided, same as ref_labels will be used.
-        ref_basis (str): adata_ref.obsm[ref_basis] will be used as features for kNN training.
-        query_basis (str): adata_query.obsm[query_basis] will be used as features for prediction.
+        ref_labels (list[str] | str): either a list of column names or a str of one column name from `adata_ref.obs` to use as labels for model training.
+        query_labels (list[str] | str | None): keys in `adata_query.obs` where to save transferred `ref_labels`.
+            (in corresponding to ref_labels order). If not provided, `ref_labels` will be used.
+        ref_basis (str): adata_ref.obsm[ref_basis] will be used as features for kNN training. Default: "X_pca_harmony".
+        query_basis (str): adata_query.obsm[query_basis] will be used as features for prediction. Default: "X_pca_harmony".
         kNN_kwargs: will be passed to kNN class init function.
     """
     knn = KNeighborsClassifier(*kNN_args, **kNN_kwargs)
