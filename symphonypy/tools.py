@@ -415,7 +415,8 @@ def transfer_labels_kNN(
 
     # TODO: predict_proba
     labels_pred = knn.predict(adata_query.obsm[query_basis])
-    labels_pred = labels_pred.reshape(labels_pred.shape[0], 1)
+    if isinstance(query_labels, list) and len(query_labels) == 1:
+        labels_pred = labels_pred.reshape(labels_pred.shape[0], 1)
     adata_query.obs[query_labels] = labels_pred
 
 
