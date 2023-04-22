@@ -140,6 +140,8 @@ def _harmony_integrate_R(
             "ref_basis_adjusted": ref_basis_adjusted,
             "converged": converged,
             "R": R,
+            "harmony_kwargs": harmony_kwargs,
+            "vars_use": key
         }
         adata.obsm[ref_basis_adjusted] = Z_corr
 

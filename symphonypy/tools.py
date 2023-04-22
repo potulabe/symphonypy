@@ -158,7 +158,11 @@ def per_cluster_confidence(
     )
 
     if uns is not None:
-        adata_query.uns[uns] = {"key": cluster_key, "dist": dists}
+        adata_query.uns[uns] = {
+            "key": cluster_key,
+            "dist": dists.to_numpy(),
+            "cluster_labels": dists.index.to_numpy(),
+        }
     if obs is not None:
         grouped = adata_query.obs.groupby(cluster_key)[cluster_key]
         adata_query.obs[obs] = grouped.transform(lambda x: dists[x[0]])
@@ -462,7 +466,6 @@ def tsne(
         logger.warning("The model that will be saved is a `PartialTSNEEmbedding`")
 
     if use_model is None:
-
         tsne_obj = TSNE(**kwargs)
 
         if use_rep != "X":
@@ -474,7 +477,6 @@ def tsne(
 
         adata.obsm[t_sne_slot] = np.array(model)
     else:
-
         if isinstance(use_model, str):
             with open(use_model, "rb") as model_file:
                 model = pickle.load(model_file)
