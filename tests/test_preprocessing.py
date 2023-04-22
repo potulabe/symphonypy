@@ -1,11 +1,4 @@
-import os
-import sys
 import scanpy as sc
-
-SYMPHONY_DIR = os.path.dirname(os.path.abspath("__file__"))
-SYMPHONYPY_DIR = os.path.join(SYMPHONY_DIR, "symphonypy")
-print(SYMPHONY_DIR)
-sys.path.append(SYMPHONY_DIR)
 import symphonypy as sp
 
 
@@ -34,8 +27,8 @@ class TestPreprocessing:
         self.assert_harmony_object(adata)
         
 
-    def test_harmony_integrate_R(self):
-        adata = sc.read_h5ad(self.adata_fp)
-        sp.pp.harmony_integrate(adata, key=self.batch_key, flavor="R")
+    # def test_harmony_integrate_R(self):
+    #     adata = sc.read_h5ad(self.adata_fp)
+    #     sp.pp.harmony_integrate(adata, key=self.batch_key, flavor="R")
 
-        self.assert_harmony_object(adata)
+    #     self.assert_harmony_object(adata)

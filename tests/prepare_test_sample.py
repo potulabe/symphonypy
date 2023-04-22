@@ -4,8 +4,6 @@ import sys
 import scanpy as sc
 
 SYMPHONY_DIR = os.path.dirname(os.path.abspath("__file__"))
-SYMPHONYPY_DIR = os.path.join(SYMPHONY_DIR, "symphonypy")
-print(SYMPHONY_DIR)
 sys.path.append(SYMPHONY_DIR)
 import symphonypy as sp
 

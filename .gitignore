@@ -1,6 +1,7 @@
-data
-!tests/data/*
+data/*
 *.h5ad
+!tests/data/*.h5ad
+
 *.tar.gz
 testing*
 .vscode
