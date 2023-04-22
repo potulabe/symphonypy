@@ -1,5 +1,7 @@
 <!-- omit in toc -->
 # Symphonypy
+![pytest workflow](https://github.com/potulabe/symphonypy/actions/workflows/test.yaml/badge.svg)
+
 Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to Python
 
 - [Installation](#installation)
