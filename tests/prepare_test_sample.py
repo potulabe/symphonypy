@@ -65,7 +65,7 @@ def prepare_test_sample(adata_fp):
 
 
 if __name__ == "__main__":
-    n_sample_ref = 4096
+    n_sample_ref = 3096
     n_sample_query = 512
     random_state = 42
     prepare_test_sample("data/PBMC_Satija.h5ad")
