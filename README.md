@@ -12,6 +12,7 @@ Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to P
   - [Step 3: Label transfer](#step-3-label-transfer)
   - [Step 4 (optional): Dimensionality reduction](#step-4-optional-dimensionality-reduction)
 - [Benchmarking](#benchmarking)
+- [Short API description](#short-api-description)
 
 
 ## Installation
@@ -92,3 +93,17 @@ sp.tl.tsne(adata_query, use_rep="X_pca_harmony", use_model=tSNE_model)
 ## Benchmarking
 - Harmony (R) vs harmonypy benchmarking: [benchmarking/Benchmarking_harmony_PBMC_Satija.ipynb](benchmarking/Benchmarking_harmony_PBMC_Satija_CITEseq.ipynb)
 - Symphony (R) vs symphonypy benchmarking: [benchmarking/Benchmarking_symphony_PBMC.ipynb](benchmarking/Benchmarking_symphony_PBMC.ipynb)
+
+## Short API description
+Arguments for each function are listed in a source code.
+
+| Function | Description |
+|-|-|
+|[`datasets`](symphonypy/datasets.py)|Preprocessed datasets for label transfer|
+|[`pp.harmony_integrate`](preprocessing.py#L13)|Run Harmony batch correction on adata, save corrected output to `adata.obsm`, save all the necessary to Symphony mapping algorithm parameters to `adata.uns`|
+|[`tl.map_embedding`](symphonypy/tools.py#L257)|Actually runs Symphony algorithm for mapping `adata_query` to `adata_ref`.|
+|[`tl.transfer_labels_kNN`](symphonypy/tools.py#L390)|Run sklearn kNN classificator for label transferring.|
+|[`tl.per_cell_confidence`](symphonypy/tools.py#L33)|Calculates the weighted Mahalanobis distance for query cells to reference clusters.|
+|[`tl.per_cluster_confidence`](symphonypy/tools.py#L109)|Calculates the Mahalanobis distance from user-defined query clusters to their nearest reference centroid after initial projection into reference PCA space.|
+|[`tl.ingest`](symphonypy/tools.py#L171)|Copied from https://github.com/scverse/scanpy/blob/master/scanpy/tools/_ingest.py with little change that var_names equality between adata and adata_new wouldn't be check if needless, and additional parameter `use_rep` is added.|
+|[`tl.tsne`](symphonypy/tools.py#L427)|Run openTSNE dimension reduction on adata if `use_model` is None, or ingest `adata.obsm[use_rep]` to existing embedding, saved in `use_model`.|
