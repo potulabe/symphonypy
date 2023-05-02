@@ -100,7 +100,7 @@ Arguments for each function are listed in a source code.
 | Function | Description |
 |-|-|
 |[`datasets`](symphonypy/datasets.py)|Preprocessed datasets for label transfer|
-|[`pp.harmony_integrate`](preprocessing.py#L13)|Run Harmony batch correction on adata, save corrected output to `adata.obsm`, save all the necessary to Symphony mapping algorithm parameters to `adata.uns`|
+|[`pp.harmony_integrate`](symphonypy/preprocessing.py#L13)|Run Harmony batch correction on adata, save corrected output to `adata.obsm`, save all the necessary to Symphony mapping algorithm parameters to `adata.uns`|
 |[`tl.map_embedding`](symphonypy/tools.py#L257)|Actually runs Symphony algorithm for mapping `adata_query` to `adata_ref`.|
 |[`tl.transfer_labels_kNN`](symphonypy/tools.py#L390)|Run sklearn kNN classificator for label transferring.|
 |[`tl.per_cell_confidence`](symphonypy/tools.py#L33)|Calculates the weighted Mahalanobis distance for query cells to reference clusters.|
