@@ -105,5 +105,5 @@ Arguments for each function are listed in a source code.
 |[`tl.transfer_labels_kNN`](symphonypy/tools.py#L390)|Run sklearn kNN classificator for label transferring.|
 |[`tl.per_cell_confidence`](symphonypy/tools.py#L33)|Calculates the weighted Mahalanobis distance for query cells to reference clusters.|
 |[`tl.per_cluster_confidence`](symphonypy/tools.py#L109)|Calculates the Mahalanobis distance from user-defined query clusters to their nearest reference centroid after initial projection into reference PCA space.|
-|[`tl.ingest`](symphonypy/tools.py#L171)|Copied from https://github.com/scverse/scanpy/blob/master/scanpy/tools/_ingest.py with little change that var_names equality between `adata` and `adata_new` wouldn't be check if needless, and additional parameter `use_rep` is added.|
+|[`tl.ingest`](symphonypy/tools.py#L171)|Copied from https://github.com/scverse/scanpy/blob/master/scanpy/tools/_ingest.py with little change that `.var_names` equality between `adata` and `adata_new` wouldn't be check if needless, and additional parameter `use_rep` is added.|
 |[`tl.tsne`](symphonypy/tools.py#L427)|Run openTSNE dimension reduction on adata if `use_model` is None, or ingest `adata.obsm[use_rep]` to existing embedding, saved in `use_model`.|
