@@ -46,8 +46,8 @@ adata_ref.raw = adata_ref
 adata_ref = adata_ref[:, adata_ref.var.highly_variable]
 sc.pp.scale(adata_ref, max_value=10)
 sc.pp.pca(adata_ref, n_comps=30, zero_center=False)
-# zero_center=False is important, because by default scanpy transforms
-# PCA and adata.obsm["X_pca"] != adata.X @ adata.varm["PCs"]
+# zero_center=False for sc.pp.pca() is recommended, but even
+# without it the results will be pretty same
 
 # You can skip Harmony if you have only one batch in reference
 sp.pp.harmony_integrate(adata_ref, key=batch_key_ref)  
