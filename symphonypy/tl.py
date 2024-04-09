@@ -41,19 +41,19 @@ def per_cell_confidence(
     """
     Calculates the weighted Mahalanobis distance for query cells to reference clusters.
     Higher distance metric indicates less confidence.
-    Saves the metric to `adata_query.obs[obs]`
+    Saves the metric to ``adata_query.obs[obs]``
 
-    :param adata_query: query adata object mapped to `adata_ref` with Symphony
+    :param adata_query: query adata object mapped to ``adata_ref`` with Symphony
     :type adata_query: AnnData
-    :param adata_ref: reference adata object (with Harmony object in adata_ref.uns)
+    :param adata_ref: reference adata object (with Harmony object in ``adata_ref.uns``)
     :type adata_ref: AnnData
-    :param ref_basis_adjusted: adata_ref.obsm[ref_basis_adjusted] should contain resulting (harmony integrated if batch was present) reference representation, defaults to "X_pca_harmony"
+    :param ref_basis_adjusted: ``adata_ref.obsm[ref_basis_adjusted]`` should contain resulting (harmony integrated if batch was present) reference representation, defaults to "X_pca_harmony"
     :type ref_basis_adjusted: str, optional
-    :param query_basis_adjusted: adata_query.obsm[query_basis_adjusted] should contain symphony adjusted query representation, defaults to "X_pca_harmony"
+    :param query_basis_adjusted: ``adata_query.obsm[query_basis_adjusted]`` should contain symphony adjusted query representation, defaults to "X_pca_harmony"
     :type query_basis_adjusted: str, optional
-    :param transferred_primary_basis: adata_query.obsm[transferred_primary_basis] should contain pre-Symphony reference PC query representation, defaults to "X_pca_reference"
+    :param transferred_primary_basis: ``adata_query.obsm[transferred_primary_basis]`` should contain pre-Symphony reference PC query representation, defaults to "X_pca_reference"
     :type transferred_primary_basis: str, optional
-    :param obs: at adata_query.obs[obs] confidence metric will be saved, defaults to "symphony_per_cell_dist"
+    :param obs: at ``adata_query.obs[obs]`` confidence metric will be saved, defaults to "symphony_per_cell_dist"
     :type obs: str, optional
     """
 
@@ -127,21 +127,21 @@ def per_cluster_confidence(
     Due to the instability of estimating covariance with small numbers of cells, we do not assign a
     score to clusters smaller than u * d, where d is the dimensionality of the embedding and u is specified.
 
-    :param adata_query: query adata object mapped to `adata_ref` with Symphony
+    :param adata_query: query adata object mapped to ``adata_ref`` with Symphony
     :type adata_query: AnnData
-    :param adata_ref: reference adata object (with Harmony object in adata_ref.uns)
+    :param adata_ref: reference adata object (with Harmony object in ``adata_ref.uns``)
     :type adata_ref: AnnData
-    :param cluster_key: which keys from adata_query.obs to use as a cluster label (if list, adata_query will be grouped by them)
+    :param cluster_key: which keys from ``adata_query.obs`` to use as a cluster label (if list, adata_query will be grouped by them)
     :type cluster_key: str
     :param u: at least u * d cells are to be assigned to a cluster, where d is a dimensionality of representation, defaults to 2
     :type u: float, optional
     :param lamb: ridge regression like coef for covariance matrix inversion numerical stability, defaults to 0
     :type lamb: float, optional
-    :param transferred_primary_basis: adata_query.obsm[transferred_primary_basis] should contain pre-Symphony reference PC query representation, defaults to "X_pca_reference"
+    :param transferred_primary_basis: ``adata_query.obsm[transferred_primary_basis]`` should contain pre-Symphony reference PC query representation, defaults to "X_pca_reference"
     :type transferred_primary_basis: str, optional
-    :param obs: If not None, resulted dists would be written to adata_query.obs[obs] for each cell (just the same value for each cluster), defaults to "symphony_per_cluster_dist"
+    :param obs: If not None, resulted dists would be written to ``adata_query.obs[obs]`` for each cell (just the same value for each cluster), defaults to "symphony_per_cluster_dist"
     :type obs: str | None, optional
-    :param uns: If not None, resulted dists would be written to adata_query.uns[uns] for each cluster, defaults to "symphony_per_cluster_dist"
+    :param uns: If not None, resulted dists would be written to ``adata_query.uns[uns]`` for each cluster, defaults to "symphony_per_cluster_dist"
     :type uns: str | None, optional
     """
     assert (
@@ -191,24 +191,27 @@ def ingest(
     **kwargs,
 ):
     """
-    copied from https://github.com/scverse/scanpy/blob/master/scanpy/tools/_ingest.py
+    Copied from https://github.com/scverse/scanpy/blob/master/scanpy/tools/_ingest.py
     with little change that var_names equality between adata and adata_new wouldn't be check if needless,
-    and additional parameter `use_rep` is added.
+    and additional parameter ``use_rep`` is added.
 
-    Args:
-        adata_query (AnnData): target adata object.
-        adata_ref (AnnData): source adata object.
-        obs (Optional[Union[str, Iterable[str]]], optional): which columns from adata_red.obs to transfer. Defaults to None.
-        embedding_method (Union[str, Iterable[str]], optional): which adata_ref's embeddings to transfer. Defaults to ('umap', 'pca').
-        labeling_method (str, optional): which method to use for labeling transferring. Defaults to 'knn'.
-        neighbors_key (Optional[str], optional): which key from adata_ref.uns to use as source of neighbors info. Defaults to None.
-        inplace (bool, optional): if to write directly to adata_query or return an adjusted copy of adata_query. Defaults to True.
-        use_rep (str, None): which adata_query's representation to use for embedding mappings. If None, it will be decided depending on circumstances. Defaults to None.
-        kwargs: will be forwarded to the `sc.tl.Ingest.neighbors` function.
-
-    Returns:
-        if inplace is False returns a copy of adata_query with additional slots,
-        otherwise adds to adata_query.
+    :param adata_query: target AnnData object
+    :type adata_query: AnnData
+    :param adata_ref: source AnnData object
+    :type adata_ref: AnnData
+    :param obs: which columns from ``adata_red.obs`` to transfer, defaults to None
+    :type obs: Optional[Union[str, Iterable[str]]], optional
+    :param embedding_method: which ``adata_ref``'s embeddings to transfer, defaults to "umap"
+    :type embedding_method: Union[str, Iterable[str]], optional
+    :param labeling_method: which method to use for labeling transferring, defaults to "knn"
+    :type labeling_method: str, optional
+    :param neighbors_key: which key from ``adata_ref.uns`` to use as source of neighbors info, defaults to None
+    :type neighbors_key: Optional[str], optional
+    :param inplace: if to write directly to ``adata_query`` or return an adjusted copy of ``adata_query``, defaults to True
+    :type inplace: bool, optional
+    :param use_rep: which ``adata_query``'s representation to use for embedding mappings. If None, it will be decided depending on circumstances, defaults to None
+    :type use_rep: str | None, optional
+    :return: if ``inplace=False`` returns a copy of ``adata_query`` with additional slots, otherwise adds to ``adata_query``.
     """
     anndata_version = pkg_version("anndata")
     if anndata_version < ANNDATA_MIN_VERSION:
@@ -278,37 +281,33 @@ def map_embedding(
     K: int | None = None,
     reference_primary_basis: str = "X_pca",
 ) -> None:
-    """
-    Actually runs Symphony algorithm for mapping adata_query to adata_ref.
-    Will use Harmony object from adata_ref.uns if present,
+    """Actually runs Symphony algorithm for mapping ``adata_query`` to ``adata_ref``.
+    Will use Harmony object from ``adata_ref.uns`` if present,
     otherwise will firstly run k-means clusterization Harmony step
     without batch correction.
 
-    Adds mapping of query cells to reference coords
-    to adata_query.obsm[transferred_primary_basis] and
-    symphony-corrected coords to adata_query.obsm[transferred_adjusted_basis],
-    and query to the reference's clusters membership to adata_query.obsm[transferred_adjusted_basis + "_R"]
-
-    Args:
-        adata_query (AnnData): query adata object.
-        adata_ref (AnnData): reference adata object
-            (to account for batch effect in reference first run harmony_integrate).
-        key (list[str] | str | None, optional): which of the columns
-            from adata_query.obs to consider as batch keys. Defaults to None.
-        lamb (float | np.array | None, optional): Entropy regularization parameter for soft k-means. Defaults to None.
-        sigma (float | np.array, optional): Ridge regularization parameter for the linear model. Defaults to 0.1.
-        use_genes_column (str | None, optional): adata_ref.var[use_genes_column] genes will
-            be used to map query embeddings to reference. Defaults to "highly_variable".
-        transferred_adjusted_basis (str, optional): in adata_query.obsm[transferred_adjusted_basis]
-            symphony-adjusted coords will be saved. Defaults to "X_pca_harmony".
-        transferred_primary_basis (str, optional): in adata_query.obsm[transferred_primary_basis]
-            adata_query mapping to reference coords will be saved. Defaults to "X_pca_reference".
-        ref_basis_loadings (str, optional): adata_ref.varm[ref_basis_loadings] will be used
-            as gene loadings to map adata_query to adata_ref coords. Defaults to "PCs".
-        K (int | None, optional): Number of clusters to use for k-means clustering.
-            Only used if harmony integration was not performed on adata_ref. Defaults to None.
-        reference_primary_basis (str): which reference embedding to use for k-means clustering.
-            Only used if harmony integration was not performed on adata_ref. Defaults to "X_pca".
+    :param adata_query: query AnnData object
+    :type adata_query: AnnData
+    :param adata_ref: reference AnnData object (to account for batch effect in reference first run ``pp.harmony_integrate``).
+    :type adata_ref: AnnData
+    :param key: which of the columns from ``adata_query.obs`` to consider as batch keys, defaults to None
+    :type key: list[str] | str | None, optional
+    :param lamb: Entropy regularization parameter for soft k-means, defaults to None
+    :type lamb: float | np.array | None, optional
+    :param sigma: Ridge regularization parameter for the linear model, defaults to 0.1
+    :type sigma: float | np.array, optional
+    :param use_genes_column: ``adata_ref.var[use_genes_column]`` genes will be used to map query embeddings to reference, defaults to "highly_variable"
+    :type use_genes_column: str | None, optional
+    :param transferred_adjusted_basis: in ``adata_query.obsm[transferred_adjusted_basis]`` symphony-adjusted coords will be saved, defaults to "X_pca_harmony"
+    :type transferred_adjusted_basis: str, optional
+    :param transferred_primary_basis: in ``adata_query.obsm[transferred_primary_basis]`` query mapping to reference coordinates will be saved, defaults to "X_pca_reference"
+    :type transferred_primary_basis: str, optional
+    :param ref_basis_loadings: ``adata_ref.varm[ref_basis_loadings]`` will be used as gene loadings to map ``adata_query`` to ``adata_ref`` coordinates, defaults to "PCs"
+    :type ref_basis_loadings: str, optional
+    :param K: Number of clusters to use for k-means clustering. Only used if harmony integration was not performed on ``adata_ref``, defaults to None
+    :type K: int | None, optional
+    :param reference_primary_basis: which reference embedding to use for k-means clustering. Only used if harmony integration was not performed on ``adata_ref``, defaults to "X_pca"
+    :type reference_primary_basis: str, optional
     """
     # Errors
     assert (
@@ -408,18 +407,20 @@ def transfer_labels_kNN(
     query_basis: str = "X_pca_harmony",
     **kNN_kwargs,
 ) -> None:
-    """
-    Run sklearn kNN classificator for label transferring.
-    Args:
-        adata_ref (AnnData): adata object to use for train.
-        adata_query (AnnData): adata object to use for prediction.
-        kNN_args: will be passed to kNN class init function.
-        ref_labels (list[str] | str): either a list of column names or a str of one column name from `adata_ref.obs` to use as labels for model training.
-        query_labels (list[str] | str | None): keys in `adata_query.obs` where to save transferred `ref_labels`.
-            (in corresponding to ref_labels order). If not provided, `ref_labels` will be used.
-        ref_basis (str): adata_ref.obsm[ref_basis] will be used as features for kNN training. Default: "X_pca_harmony".
-        query_basis (str): adata_query.obsm[query_basis] will be used as features for prediction. Default: "X_pca_harmony".
-        kNN_kwargs: will be passed to kNN class init function.
+    """Run sklearn kNN classificator for label transferring.
+
+    :param adata_query: AnnData object to use for train
+    :type adata_query: AnnData
+    :param adata_ref: AnnData object to use for prediction
+    :type adata_ref: AnnData
+    :param ref_labels: either a list of column names or a str of one column name from ``adata_ref.obs`` to use as labels for model training
+    :type ref_labels: list[str] | str
+    :param query_labels: keys in ``adata_query.obs`` where to save transferred ``ref_labels`` (in corresponding to ``ref_labels`` order). If not provided, ``ref_labels`` will be used
+    :type query_labels: list[str] | str | None, optional
+    :param ref_basis: ``adata_ref.obsm[ref_basis]`` will be used as features for kNN training, defaults to "X_pca_harmony"
+    :type ref_basis: str, optional
+    :param query_basis: ``adata_query.obsm[query_basis]`` will be used as features for prediction, defaults to "X_pca_harmony"
+    :type query_basis: str, optional
     """
     knn = KNeighborsClassifier(*kNN_args, **kNN_kwargs)
 
@@ -444,24 +445,26 @@ def tsne(
     use_raw: bool | None = None,
     return_model: bool = False,
     **kwargs,
-) -> None | "openTSNE.TSNEEmbedding":
-    """
-    Run openTSNE dimension reduction on adata if use_model is None,
-    or ingest adata.obsm[use_rep] to existing embedding, saved in use_model.
+) -> None:
+    """Run openTSNE dimension reduction on adata if ``use_model`` is None,
+    or ingest ``adata.obsm[use_rep]`` to existing embedding, saved in ``use_model``.
 
-    Args:
-        adata (Anndata): adata object
-        use_rep (str): adata.obsm[use_rep] will be used as features for `openTSNE` model.
-        t_sne_slot (str): to adata.obsm[t_sne_slot] embedding will be saved.
-        use_model (`openTSNE.TSNEEmbedding`, str, None): `openTSNE` model object or path to pickle dumped model to use. Defaults to None.
-        save_path (str, None): Filepath to save pickle of the `openTSNE` model. Defaults to None.
-        use_raw (bool, None): If to use adata.raw.X as features for `openTSNE`. Defaults to None.
-        return_model (bool): If to return `openTSNE` model. Defaults to False.
-        kwargs: will be forwarded to the `openTSNE.TSNE` init function.
-
-    Returns:
-        if return_model is True, returns `openTSNE` model
+    :param adata: AnnData object
+    :type adata: AnnData
+    :param use_rep: ``adata.obsm[use_rep]`` will be used as features for openTSNE model, defaults to "X_pca"
+    :type use_rep: str, optional
+    :param t_sne_slot: to ``adata.obsm[t_sne_slot]`` embedding will be saved, defaults to "X_tsne"
+    :type t_sne_slot: str, optional
+    :param use_model: openTSNE model object or path to pickle dumped model to use, defaults to None
+    :type use_model: openTSNE.TSNEEmbedding | str | None, optional
+    :param save_path: Filepath to save pickle of the openTSNE model, defaults to None
+    :type save_path: str | None, optional
+    :param use_raw: If to use ``adata.raw.X`` as features for openTSNE, defaults to None
+    :type use_raw: bool | None, optional
+    :param return_model: If to return openTSNE model, defaults to False
+    :type return_model: bool, optional
     """
+
 
     import pickle
 
