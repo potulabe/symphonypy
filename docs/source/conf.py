@@ -52,6 +52,7 @@ for nb in notebooks:
 
 # -- Importing modules ------------------------------------------------
 import os 
+import sys
 
 for x in os.walk("../../symphonypy"):
   sys.path.insert(0, x[0])
