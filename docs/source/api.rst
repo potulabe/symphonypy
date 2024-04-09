@@ -11,7 +11,7 @@ Preprocessing
 ---------------
 
 .. autosummary::
-   :toctree: generated
+   :toctree: .
 
    pp.harmony_integrate
 
@@ -19,7 +19,7 @@ Tools
 ---------------
 
 .. autosummary::
-   :toctree: generated
+   :toctree: .
 
    tl.map_embedding
    tl.transfer_labels_kNN
