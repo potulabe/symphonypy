@@ -1,13 +1,13 @@
-Welcome to Lumache's documentation!
-===================================
+Symphonypy — port of Symphony algorithm of single-cell reference atlas mapping to Python
+========================================================================================
 
-**Lumache** (/lu'make/) is a Python library for cooks and food lovers
-that creates recipes mixing random ingredients.
-It pulls data from the `Open Food Facts database <https://world.openfoodfacts.org/>`_
-and offers a *simple* and *intuitive* API.
+Symphonypy is a Python port of the original R Symphony package for label transfer.
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
+To cite this package, please refer the original Symphony paper:
+
+    Kang JB, Nathan A, Weinand K, Zhang F, Millard N, Rumker L, Moody DB, Korsunsky I, Raychaudhuri S
+    Efficient and precise single-cell reference atlas mapping with Symphony
+    Nat Commun. 2021 Oct 7;12(1):5890. doi: 10.1038/s41467-021-25957-x
 
 .. note::
 
@@ -18,5 +18,5 @@ Contents
 
 .. toctree::
 
-   usage
-   api
+   Tutorials
+   API
