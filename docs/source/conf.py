@@ -34,9 +34,6 @@ templates_path = ["_templates"]
 
 html_theme = "sphinx_rtd_theme"
 
-# -- Options for EPUB output
-epub_show_urls = "footnote"
-
 # -- Retrieve notebooks ------------------------------------------------
 
 from urllib.request import urlretrieve
@@ -52,3 +49,9 @@ for nb in notebooks:
         urlretrieve(notebooks_url + nb, nb)
     except:
         pass
+
+# -- Importing modules ------------------------------------------------
+import os 
+
+for x in os.walk("../../symphonypy"):
+  sys.path.insert(0, x[0])
