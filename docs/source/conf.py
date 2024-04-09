@@ -79,9 +79,5 @@ for nb in notebooks:
     except:
         pass
 
-# -- Options for HTML output
-
-html_theme = "scanpydoc"
-
 # -- Options for EPUB output
 epub_show_urls = "footnote"
