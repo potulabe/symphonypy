@@ -2,12 +2,12 @@
 
 # -- Project information
 
-project = 'Lumache'
-copyright = '2021, Graziella'
-author = 'Graziella'
+project = 'Symphonypy'
+copyright = '2023, Petrova, Isaev'
+authors = 'Petrova, Isaev'
 
-release = '0.1'
-version = '0.1.0'
+release = '0.2.1'
+version = '0.2.1'
 
 # -- General configuration
 
