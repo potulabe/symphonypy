@@ -9,8 +9,7 @@ Basic functions
 ---------------
 
 .. currentmodule:: symphonypy
-
 .. autosummary::
-   :toctree: generated/
+   :toctree: generated
 
    tl.harmony_integrate
