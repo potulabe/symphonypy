@@ -18,3 +18,4 @@ markupsafe
 symphonypy
 harmonypy
 openTSNE
+sphinx-autodoc-typehints
