@@ -9,8 +9,6 @@ authors = "Petrova, Isaev"
 release = "0.2.1"
 version = "0.2.1"
 
-# -- General configuration
-
 # -- General configuration ------------------------------------------------
 
 needs_sphinx = "2.0"
