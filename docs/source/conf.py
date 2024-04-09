@@ -27,7 +27,6 @@ extensions = [
     "readthedocs_ext.readthedocs",
     "sphinx_copybutton",
     "nbsphinx",
-    "scanpydoc",
     "docutils",
 ]
 
