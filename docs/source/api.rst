@@ -11,9 +11,9 @@ Basic functions
 ---------------
 
 .. autosummary::
-   :toctree: generated
+   :toctree: generated/
 
-   pp.harmony_integrate
+   symphonypy.pp.harmony_integrate
    tl.map_embedding
    tl.transfer_labels_kNN
    tl.per_cell_confidence
