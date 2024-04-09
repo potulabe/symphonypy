@@ -23,23 +23,27 @@ def harmony_integrate(
 ):
     """
     Run Harmony batch correction on adata,
-    save corrected output to adata.obsm,
+    save corrected output to ``adata.obsm``,
     save all the necessary to Symphony mapping
-        algorithm parameters to adata.uns
+    algorithm parameters to ``adata.uns``
 
-    Args:
-        adata (AnnData): adata object with batch
-        key (list[str] | str): which columns from adata.obs
-            to use as batch keys (`vars_use` parameter of Harmony)
-        flavor (str, optional): if to run harmonypy or Harmony via rpy2. Defaults to "python".
-        ref_basis_source (str, optional): adata.obsm[ref_basis_source] will be used
-            as input embedding to Harmony. Defaults to "X_pca".
-        ref_basis_adjusted (str, optional): at adata.obsm[ref_basis_adjusted]
-            corrected embedding will be saved. Defaults to "X_pca_harmony".
-        ref_basis_loadings (str, optional): gene loadings of ref_basis_source. Defaults to "PCs".
-        verbose (bool, optional): verbosity level of harmony. Defaults to False.
-        random_seed (int, optional): random_seed for harmony. Defaults to 1.
-
+    :param adata: adata object with batch
+    :type adata: AnnData
+    :param key: which columns ``from adata.obs`` to use as batch keys (``vars_use`` parameter of Harmony)
+    :type key: list[str] | str
+    :param flavor: if to run harmonypy or Harmony via ``rpy2``, defaults to "python"
+    :type flavor: str, optional
+    :param ref_basis_source: ``adata.obsm[ref_basis_source]`` will be used as input embedding to Harmony, defaults to "X_pca"
+    :type ref_basis_source: str, optional
+    :param ref_basis_adjusted: _description_, defaults to "X_pca_harmony"
+    :type ref_basis_adjusted: str, optional
+    :param ref_basis_loadings: _description_, defaults to "PCs"
+    :type ref_basis_loadings: str, optional
+    :param verbose: _description_, defaults to False
+    :type verbose: bool, optional
+    :param random_seed: _description_, defaults to 1
+    :type random_seed: int, optional
+    :raises Exception: _description_
     """
 
     if flavor == "python":
