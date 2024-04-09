@@ -43,13 +43,18 @@ def per_cell_confidence(
     Higher distance metric indicates less confidence.
     Saves the metric to `adata_query.obs[obs]`
 
-    Args:
-        adata_query (AnnData): query adata object mapped to `adata_ref` with Symphony
-        adata_ref (AnnData): reference adata object (with Harmony object in adata_ref.uns)
-        ref_basis_adjusted (str, optional): adata_ref.obsm[ref_basis_adjusted] should contain resulting (harmony integrated if batch was present) reference representation. Defaults to "X_pca_harmony".
-        query_basis_adjusted (str, optional): adata_query.obsm[query_basis_adjusted] should contain symphony adjusted query representation. Defaults to "X_pca_harmony".
-        transferred_primary_basis (str, optional): adata_query.obsm[transferred_primary_basis] should contain pre-Symphony reference PC query representation. Defaults to "X_pca_reference".
-        obs (str, optional): at adata_query.obs[obs] confidence metric will be saved. Defaults to "symphony_confidence".
+    :param adata_query: query adata object mapped to `adata_ref` with Symphony
+    :type adata_query: AnnData
+    :param adata_ref: reference adata object (with Harmony object in adata_ref.uns)
+    :type adata_ref: AnnData
+    :param ref_basis_adjusted: adata_ref.obsm[ref_basis_adjusted] should contain resulting (harmony integrated if batch was present) reference representation, defaults to "X_pca_harmony"
+    :type ref_basis_adjusted: str, optional
+    :param query_basis_adjusted: adata_query.obsm[query_basis_adjusted] should contain symphony adjusted query representation, defaults to "X_pca_harmony"
+    :type query_basis_adjusted: str, optional
+    :param transferred_primary_basis: adata_query.obsm[transferred_primary_basis] should contain pre-Symphony reference PC query representation, defaults to "X_pca_reference"
+    :type transferred_primary_basis: str, optional
+    :param obs: at adata_query.obs[obs] confidence metric will be saved, defaults to "symphony_per_cell_dist"
+    :type obs: str, optional
     """
 
     assert (
@@ -116,22 +121,28 @@ def per_cluster_confidence(
     obs: str | None = "symphony_per_cluster_dist",
     uns: str | None = "symphony_per_cluster_dist",
 ):
-    """
-    Calculates the Mahalanobis distance from user-defined query clusters to their nearest
+    """Calculates the Mahalanobis distance from user-defined query clusters to their nearest
     reference centroid after initial projection into reference PCA space.
     All query cells in a cluster get the same score. Higher distance indicates less confidence.
     Due to the instability of estimating covariance with small numbers of cells, we do not assign a
     score to clusters smaller than u * d, where d is the dimensionality of the embedding and u is specified.
 
-    Args:
-        adata_query (AnnData): query adata object mapped to `adata_ref` with Symphony
-        adata_ref (AnnData): reference adata object (with Harmony object in adata_ref.uns)
-        cluster_key (str, [str]): which keys from adata_query.obs to use as a cluster label (if list, adata_query will be grouped by them)
-        u (float, optional): at least u * d cells are to be assigned to a cluster, where d is a dimensionality of representation. Defaults to 2.
-        lamb (float, optional): ridge regression like coef for covariance matrix inversion numerical stability. Defaults to 0 (no ridge).
-        transferred_primary_basis (str, optional): adata_query.obsm[transferred_primary_basis] should contain pre-Symphony reference PC query representation. Defaults to "X_pca_reference".
-        obs (str | None, optional): If not None, resulted dists would be written to adata_query.obs[obs] for each cell (just the same value for each cluster)
-        uns (str | None, optional): If not None, resulted dists would be written to adata_query.uns[uns] for each cluster
+    :param adata_query: query adata object mapped to `adata_ref` with Symphony
+    :type adata_query: AnnData
+    :param adata_ref: reference adata object (with Harmony object in adata_ref.uns)
+    :type adata_ref: AnnData
+    :param cluster_key: which keys from adata_query.obs to use as a cluster label (if list, adata_query will be grouped by them)
+    :type cluster_key: str
+    :param u: at least u * d cells are to be assigned to a cluster, where d is a dimensionality of representation, defaults to 2
+    :type u: float, optional
+    :param lamb: ridge regression like coef for covariance matrix inversion numerical stability, defaults to 0
+    :type lamb: float, optional
+    :param transferred_primary_basis: adata_query.obsm[transferred_primary_basis] should contain pre-Symphony reference PC query representation, defaults to "X_pca_reference"
+    :type transferred_primary_basis: str, optional
+    :param obs: If not None, resulted dists would be written to adata_query.obs[obs] for each cell (just the same value for each cluster), defaults to "symphony_per_cluster_dist"
+    :type obs: str | None, optional
+    :param uns: If not None, resulted dists would be written to adata_query.uns[uns] for each cluster, defaults to "symphony_per_cluster_dist"
+    :type uns: str | None, optional
     """
     assert (
         "harmony" in adata_ref.uns
