@@ -13,6 +13,18 @@ Contents
 --------
 
 .. toctree::
+   :caption: Main
+   :maxdepth: 2
+   :hidden:
 
    usage
    api
+
+.. toctree::
+   :caption: Walkthroughs
+   :maxdepth: 2
+   :hidden:
+
+   Symphonypy_precomputed
+   Symphonypy_simple_tutorial
+   Symphonypy_without_harmony_tutorial
