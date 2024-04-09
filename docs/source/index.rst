@@ -14,5 +14,5 @@ Contents
 
 .. toctree::
 
-   Tutorials
-   API
+   usage
+   api
