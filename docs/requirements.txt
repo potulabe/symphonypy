@@ -2,4 +2,4 @@ sphinx
 sphinx-rtd-theme
 nbsphinx
 ipywidgets
--e https://github.com/potulabe/symphonypy.git
+git+https://github.com/potulabe/symphonypy.git
