@@ -22,14 +22,12 @@ def harmony_integrate(
     **harmony_kwargs,
 ):
     """
-    Run Harmony batch correction on adata,
-    save corrected output to ``adata.obsm``,
-    save all the necessary to Symphony mapping
-    algorithm parameters to ``adata.uns``
+    Run Harmony batch correction on adata, save corrected output to ``adata.obsm``,
+    save all the necessary to Symphony mapping algorithm parameters to ``adata.uns``
 
     :param adata: adata object with batch
     :type adata: AnnData
-    :param key: which columns ``from adata.obs`` to use as batch keys (``vars_use`` parameter of Harmony)
+    :param key: which columns from ``adata.obs`` to use as batch keys (``vars_use`` parameter of Harmony)
     :type key: list[str] | str
     :param flavor: if to run harmonypy or Harmony via ``rpy2``, defaults to "python"
     :type flavor: str, optional
@@ -43,7 +41,6 @@ def harmony_integrate(
     :type verbose: bool, optional
     :param random_seed: _description_, defaults to 1
     :type random_seed: int, optional
-    :raises Exception: _description_
     """
 
     if flavor == "python":
