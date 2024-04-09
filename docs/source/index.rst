@@ -9,8 +9,7 @@ To cite this package, please refer the original Symphony paper::
     Efficient and precise single-cell reference atlas mapping with Symphony
     Nat Commun. 2021 Oct 7;12(1):5890. doi: 10.1038/s41467-021-25957-x
 
-Contents
---------
+
 
 .. toctree::
    :caption: Main
