@@ -1,4 +1,4 @@
-.. module:: scFates
+.. module:: symphonypy
 
 API
 ===
