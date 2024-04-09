@@ -1,7 +1,21 @@
+.. module:: symphonypy
+.. automodule:: symphonypy
+   :noindex:
+
 API
 ===
 
-.. autosummary::
-   :toctree: generated
+Import symphonypy as::
 
-   lumache
+   import symphonypy as sp
+
+.. autosummary::
+   :toctree: .
+
+   pp.harmony_integrate
+   tl.map_embedding
+   tl.transfer_labels_kNN
+   tl.per_cell_confidence
+   tl.per_cluster_confidence
+   tl.ingest
+   tl.tsne
