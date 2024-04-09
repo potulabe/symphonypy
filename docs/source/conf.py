@@ -40,7 +40,6 @@ epub_show_urls = "footnote"
 # -- Retrieve notebooks ------------------------------------------------
 
 from urllib.request import urlretrieve
-from symphonypy import *
 
 notebooks_url = "https://github.com/potulabe/symphonypy/raw/main/notebooks/"
 notebooks = [
