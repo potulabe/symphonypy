@@ -13,5 +13,4 @@ Basic functions
 .. autosummary::
    :toctree: generated/
 
-.. automodule::
-   :members:
+   tl.harmony_integrate
