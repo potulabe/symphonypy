@@ -1,6 +1,4 @@
 .. module:: symphonypy
-.. automodule:: symphonypy
-   :noindex:
 
 API
 ===
