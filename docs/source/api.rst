@@ -8,7 +8,7 @@ Import symphonypy as::
 Basic functions
 ---------------
 
-.. currentmodule:: verygoodpackage
+.. currentmodule:: symphonypy
 
 .. autosummary::
    :toctree: generated/
