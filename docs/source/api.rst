@@ -10,10 +10,10 @@ Import symphonypy as::
 Basic functions
 ---------------
 
-.. autosummary:: symphonypy
-   :toctree: .
+.. autosummary::
+   :toctree: generated
 
-   symphonypy.pp.harmony_integrate
+   pp.harmony_integrate
    tl.map_embedding
    tl.transfer_labels_kNN
    tl.per_cell_confidence
