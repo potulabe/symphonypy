@@ -7,7 +7,10 @@ Import symphonypy as::
 
    import symphonypy as sp
 
-.. autosummary::
+Basic functions
+---------------
+
+.. autosummary:: symphonypy
    :toctree: .
 
    pp.harmony_integrate
