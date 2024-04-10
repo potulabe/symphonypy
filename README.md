@@ -4,15 +4,8 @@
 
 Porting of [Symphony R](https://github.com/immunogenomics/symphony) package to Python
 
-- [Installation](#installation)
-- [Examples](#examples)
-- [Instructions](#instructions)
-  - [Step 1: Reference building](#step-1-reference-building)
-  - [Step 2: Query preprocessing and Symphony](#step-2-query-preprocessing-and-symphony)
-  - [Step 3: Label transfer](#step-3-label-transfer)
-  - [Step 4 (optional): Dimensionality reduction](#step-4-optional-dimensionality-reduction)
+- [Installation and usage](#installation-and-usage)
 - [Benchmarking](#benchmarking)
-- [Short API description](#short-api-description)
 
 
 ## Installation and usage
