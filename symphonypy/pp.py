@@ -33,13 +33,13 @@ def harmony_integrate(
     :type flavor: str, optional
     :param ref_basis_source: ``adata.obsm[ref_basis_source]`` will be used as input embedding to Harmony, defaults to "X_pca"
     :type ref_basis_source: str, optional
-    :param ref_basis_adjusted: _description_, defaults to "X_pca_harmony"
+    :param ref_basis_adjusted: slot where to put corrected coordinates, defaults to "X_pca_harmony"
     :type ref_basis_adjusted: str, optional
-    :param ref_basis_loadings: _description_, defaults to "PCs"
+    :param ref_basis_loadings: slot with feature loadings to the original embedding, defaults to "PCs"
     :type ref_basis_loadings: str, optional
-    :param verbose: _description_, defaults to False
+    :param verbose: if to print logs of steps of integration, defaults to False
     :type verbose: bool, optional
-    :param random_seed: _description_, defaults to 1
+    :param random_seed: random seed, defaults to 1
     :type random_seed: int, optional
     """
 
