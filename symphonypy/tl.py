@@ -407,7 +407,7 @@ def transfer_labels_kNN(
     query_basis: str = "X_pca_harmony",
     **kNN_kwargs,
 ) -> None:
-    """Run sklearn kNN classificator for label transferring.
+    """Run sklearn kNN classifier for label transferring.
 
     :param adata_query: AnnData object to use for train
     :type adata_query: AnnData
