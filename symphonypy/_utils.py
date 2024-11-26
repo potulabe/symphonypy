@@ -240,7 +240,7 @@ def _adjust_for_missing_genes(
     t = np.zeros((adata.shape[0], use_genes_list.shape[0]))
 
     X = adata[:, use_genes_list[use_genes_list_present]].X
-    t[:, use_genes_list_present] = X.A if issparse(X) else X.copy()
+    t[:, use_genes_list_present] = X.toarray() if issparse(X) else X.copy()
 
     return t
 
@@ -282,7 +282,7 @@ def _map_query_to_ref(
         )
     else:
         X = adata_query[:, use_genes_list].X
-        t = X.A if issparse(X) else X.copy()
+        t = X.toarray() if issparse(X) else X.copy()
 
     means = (
         np.array(adata_ref.var["mean"][use_genes_list_present])
