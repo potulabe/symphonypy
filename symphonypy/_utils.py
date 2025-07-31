@@ -324,7 +324,7 @@ def _run_soft_kmeans(
     model.fit(adata_ref.obsm[ref_basis])
     C = model.cluster_centers_
 
-    Z_cos = adata_ref.obsm[ref_basis]
+    Z_cos = adata_ref.obsm[ref_basis].copy()
     Z_cos /= Z_cos.max(axis=1, keepdims=True)
     Z_cos /= np.linalg.norm(Z_cos, ord=2, axis=1, keepdims=True)
 
