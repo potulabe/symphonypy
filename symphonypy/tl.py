@@ -260,7 +260,7 @@ def ingest(
         for i, col in enumerate(obs):
             ing.map_labels(col, labeling_method[i])
 
-    logger.info("    finished", time=start)
+    logger.info("finished")
 
     if "rep" in ing._obsm:
         del ing._obsm["rep"]
