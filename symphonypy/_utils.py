@@ -24,6 +24,7 @@ def _harmony_integrate_python(
     ref_basis_adjusted: str = "X_pca_harmony",
     ref_basis_loadings: str = "PCs",
     verbose: bool = False,
+    force_transpose_output: bool = False,
     **harmony_kwargs,
 ) -> None:
     ref_ho = run_harmony(
@@ -34,22 +35,40 @@ def _harmony_integrate_python(
         **harmony_kwargs,
     )
 
-    adata.obsm[ref_basis_adjusted] = ref_ho.Z_corr.T
+    # compatibility with old harmonypy implementations:
+    if ref_ho.Z_corr.shape[0] != adata.shape[0] or force_transpose_output:
+        logger.info(
+            "Assuming that the second dimension of Z_corr is the number of cells, transposing the output of harmonypy. "
+        )
+        Z_corr = ref_ho.Z_corr.T
+        R = ref_ho.R
+    else:
+        logger.info(
+            "Assuming that the first dimension of Z_corr is the number of cells, not transposing the output of harmonypy. "
+        )
+        if ref_ho.Z_corr.shape[0] == ref_ho.Z_corr.shape[1]:
+            logger.warning(
+                "Number of cells in the output of harmonypy is equal to the number of dimensions, can't automatically determine if transposition is needed. Use force_transpose_output parameter to specify the correct orientation of the output."
+            )
+        Z_corr = ref_ho.Z_corr
+        R = ref_ho.R.T
+
+    adata.obsm[ref_basis_adjusted] = Z_corr
 
     converged = ref_ho.check_convergence(1)
 
-    # [K, d] = [K, Nref] x [d, N_ref].T
-    C = ref_ho.R @ ref_ho.Z_corr.T
+    # [K, d] = [K, Nref] x [N_ref, d]
+    C = R @ Z_corr
 
     adata.uns["harmony"] = {
         # [K] the number of cells softly belonging to each cluster
-        "Nr": ref_ho.R.sum(axis=1),
+        "Nr": R.sum(axis=1),
         # ref cluster centroids
         # [K, d]
         "C": C,
         # number of clusters
         "K": ref_ho.K,
-        # sigma [K] (cluster cross enthropy regularization coef)
+        # sigma [K] (cluster cross entropy regularization coef)
         "sigma": ref_ho.sigma,
         "ref_basis_loadings": ref_basis_loadings,
         "ref_basis_adjusted": ref_basis_adjusted,
@@ -57,7 +76,7 @@ def _harmony_integrate_python(
         "harmony_kwargs": harmony_kwargs,
         "converged": converged,
         # [K, Nref]
-        "R": ref_ho.R,
+        "R": R,
     }
 
     if not converged:
@@ -141,7 +160,7 @@ def _harmony_integrate_R(
             "converged": converged,
             "R": R,
             "harmony_kwargs": harmony_kwargs,
-            "vars_use": key
+            "vars_use": key,
         }
         adata.obsm[ref_basis_adjusted] = Z_corr
 

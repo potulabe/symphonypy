@@ -157,8 +157,8 @@ def per_cluster_confidence(
     reference_cluster_centroids_norm = reference_cluster_centroids / np.linalg.norm(
         reference_cluster_centroids, ord=2, axis=1, keepdims=True
     )
-
-    dists = adata_query.obs.groupby(cluster_key).apply(
+    grouped = adata_query.obs.groupby(cluster_key, observed=True)
+    dists = grouped.apply(
         _cluster_maha_dist,
         adata_query,
         transferred_primary_basis=transferred_primary_basis,
@@ -166,6 +166,7 @@ def per_cluster_confidence(
         reference_cluster_centroids_norm=reference_cluster_centroids_norm,
         u=u,
         lamb=lamb,
+        include_groups=False,
     )
 
     if uns is not None:
@@ -175,8 +176,7 @@ def per_cluster_confidence(
             "cluster_labels": dists.index.to_numpy(),
         }
     if obs is not None:
-        grouped = adata_query.obs.groupby(cluster_key)[cluster_key]
-        adata_query.obs[obs] = grouped.transform(lambda x: dists[x[0]])
+        adata_query.obs[obs] = grouped[cluster_key].transform(lambda x: dists[x.name])
 
 
 def ingest(
@@ -464,7 +464,6 @@ def tsne(
     :param return_model: If to return openTSNE model, defaults to False
     :type return_model: bool, optional
     """
-
 
     import pickle
 
