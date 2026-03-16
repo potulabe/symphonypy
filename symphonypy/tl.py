@@ -166,7 +166,6 @@ def per_cluster_confidence(
         reference_cluster_centroids_norm=reference_cluster_centroids_norm,
         u=u,
         lamb=lamb,
-        include_groups=False,
     )
 
     if uns is not None:
