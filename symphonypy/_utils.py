@@ -17,6 +17,38 @@ from scanpy.tools._ingest import Ingest, _DimDict
 logger = logging.getLogger("symphonypy")
 
 
+def _harmony_sigma(ref_ho, harmony_kwargs, K):
+    """Extract sigma from a harmony result, falling back to the input
+    parameter when the backend (cpp) does not expose it."""
+    sigma = getattr(ref_ho, "sigma", None)
+    if sigma is not None:
+        return np.asarray(sigma, dtype=np.float32).ravel()
+    s = harmony_kwargs.get("sigma", 0.1)
+    if np.isscalar(s):
+        return np.full(int(K), float(s), dtype=np.float32)
+    return np.asarray(s, dtype=np.float32).ravel()
+
+
+def _harmony_converged(ref_ho, harmony_kwargs):
+    """Backend-agnostic convergence flag. Returns True/False, or None
+    if it cannot be determined."""
+    if hasattr(ref_ho, "check_convergence"):
+        try:
+            return bool(ref_ho.check_convergence(1))
+        except Exception:
+            pass
+    obj = list(getattr(ref_ho, "objective_harmony", []) or [])
+    if len(obj) < 2:
+        return None
+    # Replicate torch backend's i_type=1 criterion.
+    eps = float(harmony_kwargs.get("epsilon_harmony", 1e-2))
+    max_iter = int(harmony_kwargs.get("max_iter_harmony", 10))
+    rel = (obj[-2] - obj[-1]) / (abs(obj[-2]) + 1e-12)
+    converged_by_eps = rel < eps
+    # If the loop stopped before max_iter, by construction it converged.
+    return bool(converged_by_eps or (len(obj) - 1) < max_iter)
+
+
 def _harmony_integrate_python(
     adata: AnnData,
     key: list[str] | str,
@@ -35,51 +67,42 @@ def _harmony_integrate_python(
         **harmony_kwargs,
     )
 
-    # compatibility with old harmonypy implementations:
+    # Orientation: legacy harmonypy returned (d, N); both new backends
+    # return (N, d). The check disambiguates without relying on backend type.
     if ref_ho.Z_corr.shape[0] != adata.shape[0] or force_transpose_output:
-        logger.info(
-            "Assuming that the second dimension of Z_corr is the number of cells, transposing the output of harmonypy. "
-        )
         Z_corr = ref_ho.Z_corr.T
         R = ref_ho.R
     else:
-        logger.info(
-            "Assuming that the first dimension of Z_corr is the number of cells, not transposing the output of harmonypy. "
-        )
         if ref_ho.Z_corr.shape[0] == ref_ho.Z_corr.shape[1]:
             logger.warning(
-                "Number of cells in the output of harmonypy is equal to the number of dimensions, can't automatically determine if transposition is needed. Use force_transpose_output parameter to specify the correct orientation of the output."
+                "Z_corr is square (%d x %d); orientation is ambiguous. "
+                "Pass force_transpose_output=True if results look wrong.",
+                ref_ho.Z_corr.shape[0], ref_ho.Z_corr.shape[1],
             )
         Z_corr = ref_ho.Z_corr
         R = ref_ho.R.T
 
+    K = int(ref_ho.K)
+    converged = _harmony_converged(ref_ho, harmony_kwargs)
+    sigma = _harmony_sigma(ref_ho, harmony_kwargs, K)
+
     adata.obsm[ref_basis_adjusted] = Z_corr
-
-    converged = ref_ho.check_convergence(1)
-
-    # [K, d] = [K, Nref] x [N_ref, d]
-    C = R @ Z_corr
+    C = R @ Z_corr  # [K, d]
 
     adata.uns["harmony"] = {
-        # [K] the number of cells softly belonging to each cluster
         "Nr": R.sum(axis=1),
-        # ref cluster centroids
-        # [K, d]
         "C": C,
-        # number of clusters
-        "K": ref_ho.K,
-        # sigma [K] (cluster cross entropy regularization coef)
-        "sigma": ref_ho.sigma,
+        "K": K,
+        "sigma": sigma,
         "ref_basis_loadings": ref_basis_loadings,
         "ref_basis_adjusted": ref_basis_adjusted,
         "vars_use": key,
         "harmony_kwargs": harmony_kwargs,
         "converged": converged,
-        # [K, Nref]
         "R": R,
     }
 
-    if not converged:
+    if converged is False:
         logger.warning(
             "Harmony didn't converge. "
             "Consider increasing max_iter_harmony parameter value"
@@ -361,7 +384,7 @@ def _run_soft_kmeans(
         # number of clusters
         "K": K,
         # sigma [K] (cluster cross enthropy regularization coef)
-        "sigma": None,
+        "sigma": np.full(int(K), float(sigma), dtype=np.float32) if np.isscalar(sigma) else np.asarray(sigma, dtype=np.float32).ravel(),
         "ref_basis_loadings": ref_basis_loadings,
         "ref_basis_adjusted": ref_basis,
         "vars_use": None,

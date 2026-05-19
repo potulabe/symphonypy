@@ -4,7 +4,9 @@ from __future__ import annotations
 import logging
 import warnings
 
-from typing import Iterable, List, Optional, Union
+from typing import Iterable, List, Optional, Union, TYPE_CHECKING
+if TYPE_CHECKING:
+    from openTSNE import TSNEEmbedding
 
 import numpy as np
 import pandas as pd
@@ -158,15 +160,21 @@ def per_cluster_confidence(
         reference_cluster_centroids, ord=2, axis=1, keepdims=True
     )
     grouped = adata_query.obs.groupby(cluster_key, observed=True)
-    dists = grouped.apply(
-        _cluster_maha_dist,
-        adata_query,
-        transferred_primary_basis=transferred_primary_basis,
-        reference_cluster_centroids=reference_cluster_centroids,
-        reference_cluster_centroids_norm=reference_cluster_centroids_norm,
-        u=u,
-        lamb=lamb,
-    )
+
+    def _apply(g):
+        return _cluster_maha_dist(
+            g, adata_query,
+            transferred_primary_basis=transferred_primary_basis,
+            reference_cluster_centroids=reference_cluster_centroids,
+            reference_cluster_centroids_norm=reference_cluster_centroids_norm,
+            u=u, lamb=lamb,
+        )
+
+    try:
+        dists = grouped.apply(_apply, include_groups=False)
+    except TypeError:
+        # pandas < 2.2
+        dists = grouped.apply(_apply)
 
     if uns is not None:
         adata_query.uns[uns] = {
@@ -293,7 +301,7 @@ def map_embedding(
     :type key: list[str] | str | None, optional
     :param lamb: Entropy regularization parameter for soft k-means, defaults to None
     :type lamb: float | np.array | None, optional
-    :param sigma: Ridge regularization parameter for the linear model, defaults to 0.1
+    :param sigma: Soft k-means kernel bandwidth. Only used when the reference Harmony object does not carry its own sigma (i.e. the no-batch soft-kmeans path). When ``adata_ref`` was produced by ``pp.harmony_integrate``, the reference's sigma is reused, as Symphony requires. Default 0.1.
     :type sigma: float | np.array, optional
     :param use_genes_column: ``adata_ref.var[use_genes_column]`` genes will be used to map query embeddings to reference, defaults to "highly_variable"
     :type use_genes_column: str | None, optional
@@ -360,7 +368,15 @@ def map_embedding(
     C = harmony_ref["C"]
     Y = C / np.linalg.norm(C, ord=2, axis=1, keepdims=True)
 
-    R = _assign_clusters(X, sigma, Y, harmony_ref["K"])
+    K_eff = int(harmony_ref["K"])
+    ref_sigma = harmony_ref.get("sigma")
+    if ref_sigma is not None:
+        sigma_eff = np.asarray(ref_sigma, dtype=np.float64).ravel()
+        if sigma_eff.size == 1:
+            sigma_eff = np.repeat(sigma_eff, K_eff)
+    else:
+        sigma_eff = sigma
+    R = _assign_clusters(X, sigma_eff, Y, K_eff)
 
     # 3. correct query embeddings
     # likewise harmonypy
@@ -376,7 +392,9 @@ def map_embedding(
     # [B + 1, N]
     phi_ = np.concatenate([np.ones((1, phi.shape[1])), phi], axis=0)
 
-    phi_n = batch_data.describe().loc["unique"].to_numpy().astype(int)
+    phi_n = np.array(
+        [batch_data[col].nunique() for col in batch_data.columns], dtype=int
+    )
     # lambda (ridge regularization coef)
     if lamb is None:
         lamb = np.repeat([1] * len(phi_n), phi_n)
@@ -439,7 +457,7 @@ def tsne(
     adata: AnnData,
     use_rep: str = "X_pca",
     t_sne_slot: str = "X_tsne",
-    use_model: "openTSNE.TSNEEmbedding" | str | None = None,
+    use_model: TSNEEmbedding | str | None = None,
     save_path: str | None = None,
     use_raw: bool | None = None,
     return_model: bool = False,
